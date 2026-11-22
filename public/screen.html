@@ -147,7 +147,8 @@ function kbKey(e){ // keyboard players (weight x10): pink A/Q/W/E/Z, cyan L/I/O/
   return true;
 }
 if(QS.has('fx'))document.body.classList.add('fx');
-addEventListener('keydown',e=>{unlock();if(e.key==='k'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName))document.body.classList.toggle('legend');if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(kbKey(e))return;if(e.key===' '){e.preventDefault();adm(S.phase==='lobby'?'start':'skip')}if(e.key==='r')adm('reset');if(e.key==='b')adm('bots?n=20');if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x')adm('halt')});
+addEventListener('keydown',e=>{unlock();if(e.key==='k'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName))document.body.classList.toggle('legend');if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(kbKey(e))return;if(e.key===' '){e.preventDefault();if(S.phase==='lobby')adm('start')} /* space only STARTS from the lobby: it can never interrupt a match */if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x'){if(Date.now()-xAt<2000)adm('halt');else{xAt=Date.now();ov('<div class="banner">Press X again to STOP ALL</div>',1600)}}});
+let xAt=0;
 function ov(html,ms){clearTimeout(ovT);$('ov').innerHTML=html;if(ms)ovT=setTimeout(()=>{$('ov').innerHTML=''},ms)}
 // character picture: duotone slice-shift image, or the emoji icon if no portrait exists. cls = dA/dB/dG/dY
 const pic=(c,cls)=>c.img?`<div class="gs ${cls}" style="--img:url(${c.img})"></div>`:`<div class="ic">${c.icon}</div>`;
@@ -164,7 +165,7 @@ function render(){
 function staticView(){
   const A=BR.ART;
   if(S.phase==='lobby')return `<div class="lobby"><div class="sky" style="top:4%">${A.saucer(8)}</div><div class="sky" style="top:70%;animation-duration:20s;animation-delay:-9s">${A.alien(6)}</div><div class="qr"><img src="/qr.svg"></div><div><div class="big">${BR.gl('Scan.')}<br>Pick your fighter.</div><div class="sub">Six weirdos. The crowd picks two. Then YOU decide who wins.</div>
-    <div class="cnt">${S.players}<small>people in</small></div><div class="keys">[space] start · [b] +20 bots · [r] reset · [x] STOP ALL · [d] debug · [f] fullscreen</div></div></div>`;
+    <div class="cnt">${S.players}<small>people in</small></div><div class="keys">[space] start · [x][x] STOP ALL · [d] debug · [f] fullscreen · everything else: /control</div></div></div>`;
   if(S.phase==='casting'){const mx=Math.max(1,...S.roster.map(c=>c.votes)),rank=[...S.roster].sort((a,b)=>b.votes-a.votes).map(c=>c.id);
     return `<div class="cast">${S.roster.map((c,i)=>{const r=rank.indexOf(c.id),top=r<2&&c.votes>0,d=BR.duo(c.id),cc={dA:'var(--A)',dB:'var(--B)',dG:'var(--ph)',dY:'var(--y)'}[d];return `<div class="cc ${top?'top':''}" style="--cc:${cc}"><div class="im">${pic(c,d)}<span class="id">DEF-0${i+1}</span></div><div class="cp"><b>${c.name}</b><small>${c.tagline}</small></div><div class="vb"><i style="width:${100*c.votes/mx}%"></i></div><span class="vn">${c.votes}</span>${top?`<span class="rk">#${r+1}</span>`:''}</div>`}).join('')}</div>`}
   if(S.phase==='generating'){const f=(k)=>{const x=S[k];return `<div class="fc" style="--c:${COL[k]}"><div class="im">${x.char?pic(x.char,BR.corner(k)):''}</div><div class="cp"><b>${x.name}</b><small>${x.n} fans · ${x.char?x.char.tagline:''}</small></div></div>`};

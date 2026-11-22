@@ -51,7 +51,7 @@
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   const banner = document.createElement('div'); banner.id = 'dbg-banner'; document.body.append(banner, root);
   const mini = document.createElement('div'); mini.id = 'dbg-mini'; mini.innerHTML = '<span id="m-mode"></span><span id="m-sp">$0.00</span><button id="m-stop" title="STOP ALL (cancels everything, blocks paid calls)">STOP</button>'; document.body.appendChild(mini);
-  mini.querySelector('#m-stop').onclick = () => adm('halt');
+  mini.querySelector('#m-stop').onclick = () => { if (confirm('STOP ALL? This cancels the match and blocks paid calls.')) adm('halt'); };
   const $ = (id) => document.getElementById(id), adm = (c) => fetch('/admin/' + c).catch(() => {});
   let D = null;
   const toggle = () => { root.classList.toggle('open'); $('d-toggle').textContent = root.classList.contains('open') ? '▼ Debug' : '▲ Debug'; };
