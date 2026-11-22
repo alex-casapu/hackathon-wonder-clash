@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Weird Wrestling — Control</title>
+<title>GlitchOut Fighter — Control</title>
 <style>
 :root{--bg:#0b0813;--card:#161127;--fg:#efeaff;--mut:#8f88ad;--A:#ff3d81;--B:#19d3ff;--ok:#3ddc84;--warn:#ffb020;--bad:#ff4d4d}
 *{box-sizing:border-box}
@@ -27,16 +27,34 @@ pre{margin:0;max-height:240px;overflow:auto;font:11px/1.35 ui-monospace,Menlo,mo
 a{color:#9ad}
 #banner{display:none;background:#b3121f;color:#fff;font-weight:700;text-align:center;padding:8px;border-radius:10px;margin-bottom:10px}
 #pin{display:none;position:fixed;inset:0;background:#000d;z-index:20;align-items:center;justify-content:center}#pin div{background:var(--card);padding:20px;border-radius:14px;display:flex;gap:8px;flex-direction:column}
+.hero{margin-bottom:12px}.hero .big{font-size:14px;padding:11px 16px;font-weight:800}
+.stage{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:10px;margin-top:8px;height:50vh;min-height:300px}
+.stage>div{border-radius:12px;overflow:hidden;background:#000;position:relative}.stage iframe{width:100%;height:100%;border:0}
+.stage .tag{position:absolute;left:8px;top:6px;z-index:2;background:#000b;color:#cfc8ee;font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;border-radius:99px}
+@media(max-width:900px){.stage{grid-template-columns:1fr;height:auto}.stage>div{height:42vh}}
 </style></head><body>
 <div id="pin"><div><b>Admin PIN needed</b><span class="mut">This page was opened from another device. Enter the ADMIN_PIN set in .env.</span><input id="pinv" type="password"><button class="go" onclick="setPin()">Connect</button></div></div>
 <header>
-  <h1>⚔️ WEIRD WRESTLING · CONTROL</h1>
+  <h1>⚔️ GLITCHOUT FIGHTER · CONTROL</h1>
   <span class="chip" id="c-phase"></span><span class="chip" id="c-mode"></span><span class="chip">spent <b id="c-sp">$0</b> / <b id="c-cap"></b></span><span class="chip" id="c-players"></span>
   <span class="grow"></span>
   <a href="/screen" target="_blank">screen</a> · <a href="/demo?n=40&auto=1" target="_blank">demo</a> · <a href="/sim?n=40" target="_blank">crowd sim</a> · <a href="/styles" target="_blank">styles</a>
   <button class="go" onclick="adm('resume')">Resume</button><button id="stop" onclick="adm('halt')">⛔ STOP ALL</button>
 </header>
+<div id="livewarn" style="display:none;background:#8a3b00;color:#fff;font-weight:800;text-align:center;padding:10px;border-radius:10px;margin-bottom:10px"></div>
 <div id="banner">HALTED: match stopped, queued tasks cancelled, paid calls blocked until you press Resume.</div>
+<div class="card hero">
+  <div class="row"><b style="font-size:15px">Presenter console</b>
+    <span class="mut">virtual users</span><input id="dn" type="number" value="40" min="5" max="150" style="width:70px">
+    <button class="go big" onclick="runDemo('live')">&#9654; Run LIVE demo</button>
+    <button class="dim" onclick="adm('crowd?n='+$('dn').value)">+ crowd only</button><button class="dim" onclick="adm('crowdstop')">remove crowd</button>
+    <span class="grow"></span><span class="mut" id="demostate"></span></div>
+  <div class="mut">One click: clears the stage, brings in the virtual phones, opens the vote, then plays the whole match with real generated video and voices (about $3 per match). The projector uses <a href="/screen" target="_blank">/screen</a>; the preview below is silent.</div>
+  <div class="row" style="margin-top:6px"><button class="dim" id="pf-btn" onclick="preflight()">Check everything is ready</button><span id="pf" class="mut"></span></div>
+  <details style="margin-top:4px"><summary class="mut" style="cursor:pointer">Rehearsal options (not live)</summary>
+    <div class="row"><label><input type="checkbox" id="dfast"> fast timings</label><button class="dim" onclick="runDemo('replay')">Rehearse with a recorded match (free, NOT live)</button><span class="mut">only for testing the flow; it plays old video</span></div></details>
+  <div class="stage"><div><span class="tag">screen preview (muted)</span><iframe src="/screen?mute=1&nodock=1"></iframe></div><div><span class="tag">virtual crowd</span><iframe src="/sim?embed=1&view=1"></iframe></div></div>
+</div>
 <div class="grid">
 
 <div class="card"><h3>1 · Start a match</h3>
@@ -71,7 +89,7 @@ a{color:#9ad}
   <div class="mut">On the screen page the same works from the keyboard: pink A / Q W E / Z, cyan L / I O P / M.</div></div>
 
 <div class="card"><h3>5 · Modes & cost</h3>
-  <div class="row"><button id="m-live" onclick="adm('mock?on=0')">LIVE (paid)</button><button id="m-mock" onclick="adm('mock?on=1')">MOCK (free)</button> <span class="mut">switches instantly, no restart</span></div>
+  <div class="row"><button id="m-live" onclick="adm('mock?on=0')">LIVE (paid)</button><button id="m-mock" onclick="adm('mock?on=1')">REPLAY (free)</button> <span class="mut">switches instantly, no restart</span></div>
   <div class="row"><label><input type="checkbox" id="eco"> Economy (2 branches/round)</label></div>
   <div class="row"><label><input type="checkbox" id="aud"> Sound inside clips</label></div>
   <div class="row"><label><input type="checkbox" id="voi"> Auto-generate voice lines</label></div>
@@ -97,12 +115,18 @@ function rnd(){const r=D.rosterList,a=r[Math.floor(Math.random()*r.length)];let 
 function speak(){const t=$('stxt').value.trim();if(!t)return;if(confirm('Generate and play this line (~$0.03)?'))adm(`speak?voice=${$('sv').value}&text=${encodeURIComponent(t)}`)}
 $('force').querySelectorAll('button').forEach(b=>b.onclick=()=>adm('force?win='+b.dataset.w));
 $('eco').onchange=e=>adm('economy?on='+(e.target.checked?1:0));$('aud').onchange=e=>adm('audio?on='+(e.target.checked?1:0));$('voi').onchange=e=>adm('voice?on='+(e.target.checked?1:0));
+function runDemo(mode){
+  adm(`rundemo?n=${$('dn').value}&mode=${mode}&fast=${$('dfast')&&$('dfast').checked?1:0}`).then(r=>{if(r&&r.ok===0)alert('Paid calls are halted. Press Resume first.')});
+}
+function preflight(){fetch(q('/admin/preflight')).then(r=>r.json()).then(d=>{const bad=d.checks.filter(x=>!x.ok);
+  $('pf').innerHTML=(bad.length?`<b class="bad">${bad.length} problem${bad.length>1?'s':''}</b>`:'<b class="ok">READY FOR LIVE</b>')+'<br>'+d.checks.map(x=>`<span class="${x.ok?'ok':'bad'}">${x.ok?'✔':'✖'}</span> ${x.name}: ${x.detail}`).join('<br>')}).catch(()=>{})}
 let built=false;
 function draw(){
   const pct=D.cap?Math.min(100,100*D.spent/D.cap):0;
   $('c-phase').innerHTML=`<b>${D.phase}</b>${D.phase==='fight'?' · round '+D.beat+' · '+D.beatPhase:''}`;
-  $('c-mode').innerHTML=D.live?'<b class="ok">LIVE</b>':(D.mock?'<b class="warnc">MOCK (switched)</b>':'<b class="warnc">MOCK</b>');
-  $('c-sp').textContent='$'+D.spent.toFixed(2);$('c-cap').textContent='$'+D.cap;$('c-players').innerHTML=`<b>${D.players}</b> players · ${D.sim} sim · ${D.bots} bots`;
+  $('c-mode').innerHTML=D.live?'<b class="ok">LIVE</b>':'<b class="bad">NOT LIVE</b>';
+  const lw=$('livewarn');if(!D.live){lw.style.display='block';lw.innerHTML=`NOT LIVE — ${D.notLive}  <button class="go" onclick="adm('mock?on=0')">Switch to LIVE</button>`}else if(D.liveError){lw.style.display='block';lw.textContent=D.liveError}else lw.style.display='none';
+  $('c-sp').textContent='$'+D.spent.toFixed(2);$('c-cap').textContent='$'+D.cap;$('c-players').innerHTML=`<b>${D.players}</b> players · ${D.sim} sim · ${D.bots} bots`;$('demostate').textContent=D.crowd?`${D.crowd} virtual phones on the server`:'no virtual crowd yet';
   $('stop').className=D.halted?'halted':'';$('stop').textContent=D.halted?'⛔ STOPPED':'⛔ STOP ALL';$('banner').style.display=D.halted?'block':'none';
   if(!built){built=true;const opt=D.rosterList.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');$('qa').innerHTML=opt;$('qb').innerHTML=opt;$('qb').selectedIndex=1;
     $('host-ev').innerHTML=D.hostEvents.map(e=>`<button class="dim" onclick="adm('hostsay?event=${e}')">${e}</button>`).join('');
@@ -120,5 +144,5 @@ function draw(){
   $('items').innerHTML=D.items.map(i=>`<tr><td>${i.n}</td><td>${i.kind}</td><td>${i.label}</td><td class="${i.real?'':'mut'}">$${i.usd.toFixed(3)}${i.real?'':'~'}</td><td class="${i.status==='failed'?'bad':i.status==='done'?'ok':'mut'}">${i.status}</td></tr>`).join('');
   const lg=$('logs'),end=lg.scrollTop+lg.clientHeight>=lg.scrollHeight-10;lg.textContent=D.logs.join('\n');if(end)lg.scrollTop=lg.scrollHeight;
 }
-connect();
+connect();setTimeout(preflight,800);
 </script></body></html>

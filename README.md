@@ -1,6 +1,25 @@
-# Weird Wrestling (cartella `clash/`)
+# GlitchOut Fighter (cartella `clash/`)
 
 Il pubblico scansiona un QR, **vota il personaggio preferito tra 6** (3 uomini, 3 donne, surreali). I due più votati combattono; poi ognuno **sceglie chi spingere** e, per 90 secondi, vota mosse, tocca, insulta. Il combattimento è **un solo video continuo** con i due personaggi nella stessa scena. Tutto gira sul Mac.
+
+## Demo day: la scaletta (LIVE)
+
+**Prima di salire sul palco**
+1. Avvia: doppio clic su `start.command` (oppure `npm run go`). Il terminale stampa gli indirizzi e apre da solo la pagina di controllo. Se la porta 3000 è occupata da un'altra app, usa la successiva e lo scrive.
+2. In `/control` premi **"Check everything is ready"**: deve dire **READY FOR LIVE** (chiave MachGen, chiave ElevenLabs, ffmpeg, 6 ritratti, tetto di spesa, indirizzo per i telefoni). Se non è LIVE, in alto compare un avviso arancione con il motivo e il pulsante per tornare LIVE.
+3. Sul proiettore apri `/screen` a schermo intero (`f`) e **clicca una volta** per attivare l'audio. Lo schermo è pulito di default; `k` mostra la legenda dei tasti, `d` apre il pannello costi, `?fx=1` riporta gli effetti retrò.
+4. Metti il tetto di spesa che vuoi (`MAX_SPEND` o dal pannello). Ogni partita costa circa 3 $.
+
+**Durante la demo**
+- **▶ Run LIVE demo** in `/control`: porta dentro i telefoni virtuali, apre il voto, poi parte tutta la partita con video e voci veri. Nella pagina vedi anche l'anteprima muta dello schermo e la parete degli utenti simulati.
+- Telefoni veri: il QR sul proiettore punta al Mac. Stessa rete Wi-Fi, oppure condividi la rete dal Mac / usa l'hotspot di un telefono (ai telefoni non serve internet).
+- Per giocare in prima persona: scheda "Play yourself" in `/demo`, oppure la tastiera sullo schermo (rosa `A` tap, `Q W E` mosse, `Z` insulto; ciano `L`, `I O P`, `M`).
+- Per pilotare: forza l'esito del prossimo round, lancia "tap storm" o "taunt wave", fai parlare il cronista, scegli i due lottatori saltando il voto.
+- **⛔ STOP ALL** (anche tasto `x` sullo schermo): ferma tutto, annulla ciò che è in coda e blocca i costi.
+
+**Se qualcosa va storto**
+- Video lento: è la coda del servizio; il gioco tiene l'ultima scena in loop per qualche secondo e poi riprende. Se la prima clip non arriva, il pannello lo segnala: Reset e rilancia.
+- Modalità "replay" (video registrato di una partita vera): è solo un'opzione manuale per le prove, sotto "Rehearsal options". **Non parte mai da sola.**
 
 ## Avvio
 

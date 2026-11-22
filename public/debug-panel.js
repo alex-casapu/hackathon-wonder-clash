@@ -4,6 +4,11 @@
   const css = `
   #dbg{position:fixed;left:0;right:0;bottom:0;z-index:50;font:12px/1.35 -apple-system,system-ui,sans-serif;color:#ece8ff}
   #dbg *{box-sizing:border-box}
+  #dbg:not(.open) .bar{display:none}
+  #dbg-mini{position:fixed;right:1vw;bottom:1vh;z-index:50;display:flex;gap:6px;align-items:center;background:#000a;border-radius:99px;padding:3px 4px 3px 10px;font:600 12px system-ui;color:#cfc8ee;opacity:.55;transition:opacity .2s}
+  #dbg-mini:hover{opacity:1}
+  #dbg-mini button{border:0;border-radius:99px;background:#e11d2e;color:#fff;font-weight:900;padding:2px 9px;cursor:pointer}
+  #dbg.open #dbg-mini{display:none}
   #dbg .bar{display:flex;align-items:center;gap:12px;background:#0c0916f2;border-top:1px solid #ffffff22;padding:5px 12px;height:40px}
   #dbg button,#dbg input{font:inherit;border:0;border-radius:7px;padding:5px 10px;background:#2a2342;color:#ece8ff;cursor:pointer}
   #dbg button:hover{filter:brightness(1.25)}
@@ -45,7 +50,8 @@
   const root = document.createElement('div'); root.id = 'dbg'; root.innerHTML = html;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   const banner = document.createElement('div'); banner.id = 'dbg-banner'; document.body.append(banner, root);
-  document.body.style.paddingBottom = '40px';
+  const mini = document.createElement('div'); mini.id = 'dbg-mini'; mini.innerHTML = '<span id="m-mode"></span><span id="m-sp">$0.00</span><button id="m-stop" title="STOP ALL (cancels everything, blocks paid calls)">STOP</button>'; document.body.appendChild(mini);
+  mini.querySelector('#m-stop').onclick = () => adm('halt');
   const $ = (id) => document.getElementById(id), adm = (c) => fetch('/admin/' + c).catch(() => {});
   let D = null;
   const toggle = () => { root.classList.toggle('open'); $('d-toggle').textContent = root.classList.contains('open') ? '▼ Debug' : '▲ Debug'; };
@@ -61,14 +67,15 @@
   $('d-warm').onclick = () => { if (!D || !D.audioMissing.n) return alert('All voice lines are already cached.'); if (confirm(`Generate ${D.audioMissing.n} voice lines (~$${D.audioMissing.est}, one time)?`)) adm('warm'); };
   const es = new EventSource('/debug-events');
   es.onmessage = (e) => { D = JSON.parse(e.data); draw(); };
-  es.onerror = () => { if (!D) { es.close(); root.remove(); banner.remove(); document.body.style.paddingBottom = ''; } }; // not local: no dock
+  es.onerror = () => { if (!D) { es.close(); root.remove(); banner.remove(); document.body.style.paddingBottom = ''; mini.remove(); } }; // not local: no dock
   function draw() {
     const pct = D.cap ? Math.min(100, 100 * D.spent / D.cap) : 0, left = (D.cap - D.spent).toFixed(2);
     $('d-sp').textContent = $('d-sp2').textContent = '$' + D.spent.toFixed(2);
     $('d-cap2').textContent = `of $${D.cap} · ${D.inflight} in flight`; $('d-capl').textContent = `cap $${D.cap}, $${left} left`;
     $('d-bar').style.width = pct + '%'; $('d-bar').style.background = pct > 80 ? '#ff4d4d' : pct > 50 ? '#ffb020' : '#3ddc84';
     $('d-state').textContent = `${D.phase}${D.phase === 'fight' ? ' r' + D.beat : ''} · ${D.players} players`;
-    $('d-mode').innerHTML = D.live ? '<span class="ok">LIVE</span>' : '<span class="warn">MOCK</span>';
+    $('m-sp').textContent = '$' + D.spent.toFixed(2); $('m-mode').textContent = D.halted ? 'STOPPED' : (D.live ? 'LIVE' : 'NOT LIVE'); $('m-mode').style.color = D.live ? '' : '#ff9a3c'; $('m-stop').textContent = D.halted ? 'STOPPED' : 'STOP';
+    $('d-mode').innerHTML = D.live ? '<span class="ok">LIVE</span>' : (D.replay ? '<span class="warn">REPLAY</span>' : '<span class="warn">MOCK</span>');
     $('d-stop').className = D.halted ? 'halted' : ''; $('d-stop').textContent = D.halted ? '⛔ STOPPED' : '⛔ STOP ALL';
     banner.style.display = D.halted ? 'block' : 'none'; banner.textContent = 'HALTED: match stopped, queued tasks cancelled, no paid call can start until you press "Resume paid calls" (debug drawer).';
     if (document.activeElement !== $('d-cap')) $('d-cap').value = D.cap;

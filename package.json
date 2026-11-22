@@ -1,11 +1,13 @@
 {
-  "name": "clash",
+  "name": "glitchout-fighter",
   "version": "1.0.0",
-  "description": "",
+  "description": "GlitchOut Fighter: the crowd picks two fighters and decides the fight, told as one continuous AI video.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
+    "go": "node server.js --open",
+    "rehearse": "node server.js --fast --open",
     "demo": "FAST=1 node server.js"
   },
   "keywords": [],

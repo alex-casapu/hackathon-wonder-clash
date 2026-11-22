@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Weird Wrestling — Demo</title>
+<title>GlitchOut Fighter — Demo</title>
 <style>
 html,body{margin:0;height:100%;background:#05030a;overflow:hidden;font-family:-apple-system,system-ui,sans-serif}
 .wrap{display:grid;grid-template-columns:1fr 31vw;height:100vh}
@@ -21,7 +21,7 @@ button{font:inherit;font-size:11px;background:#251a3d;color:#fff;border:0;border
 // /demo?n=40&auto=1 -> n virtual phones join (staggered). "Play yourself" = a real phone view next to the simulated crowd,
 // usable with mouse/touch by the presenter or a volunteer. The screen also takes keyboard players (see legend).
 const n=new URLSearchParams(location.search).get('n')||'30';
-function go(){document.getElementById('sim').src='/sim?embed=1&n='+n+'&auto=1'}
+function go(){fetch('/admin/crowd?n='+n).catch(()=>{})}
 function tab(t){const c=t==='crowd';document.getElementById('sim').style.display=c?'block':'none';document.getElementById('play').style.display=c?'none':'block';document.getElementById('tc').className=c?'on':'';document.getElementById('tp').className=c?'':'on';document.getElementById('ttl').textContent=c?'The crowd (simulated)':'You are a player'}
 if(new URLSearchParams(location.search).has('auto'))go();
 </script></body></html>

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Weird Wrestling — Screen</title>
+<title>GlitchOut Fighter — Screen</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik+Glitch&family=VT323&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/brand.css">
@@ -105,7 +105,27 @@ html,body{margin:0;height:100%;background:var(--void);color:var(--w);font-family
 .gen .vs{font-family:var(--f-bang);font-size:10vh;color:var(--r);background:var(--y);width:24vh;height:24vh;clip-path:var(--burst);display:flex;align-items:center;justify-content:center;-webkit-text-stroke:.4vh #000;paint-order:stroke fill;transform:rotate(-6deg);flex:none}
 #kleg{position:fixed;left:1vw;bottom:5.8vh;z-index:41;font-size:2.2vh;color:var(--ph);opacity:.75;pointer-events:none;text-transform:uppercase}
 .tag{position:fixed;bottom:5.8vh;right:1vw;font-size:2.2vh;color:var(--ph);opacity:.7;z-index:41}
-</style></head><body class="crt"><div id="app"><div class="head"><span class="p">P666</span><span class="title gl" data-t="Weird Wrestling">Weird Wrestling</span><span id="hmid"></span><span id="hr"></span></div><div id="body"></div><div id="ov"></div></div><div class="tag" id="tag"></div><div id="kleg">Keyboard players ×10 · <b style="color:var(--A)">PINK</b> A tap · Q W E moves · Z taunt &nbsp;|&nbsp; <b style="color:var(--B)">CYAN</b> L tap · I O P moves · M taunt</div><div id="unlock">Sound off — click anywhere to enable</div>
+body:not(.fx){--f-disp:Impact,'Arial Black','Helvetica Neue',sans-serif}
+/* ===== clean presentation mode (default): no CRT filter, no colour tint, no glitch slicing, minimal overlays =====
+   Press "k" on the screen for the keyboard legend, "d" for the debug dock. Add ?fx=1 to bring the full retro effects back. */
+body:not(.fx).crt::after{display:none!important}
+body:not(.fx) .dA,body:not(.fx) .dB,body:not(.fx) .dG,body:not(.fx) .dY{filter:none!important}
+body:not(.fx) .gs::before,body:not(.fx) .gs::after,body:not(.fx) .gl::before,body:not(.fx) .gl::after,body:not(.fx) .trk,body:not(.fx) .sky{display:none!important}
+body:not(.fx) #app{padding-bottom:2vh}
+body:not(.fx) .head{background:transparent;color:#d9f7e6;margin:0;padding:1.2vh 0 .4vh;border-bottom:.2vh solid #ffffff22}
+body:not(.fx) .head .p{display:none}
+body:not(.fx) .head .title{font-family:var(--f-body);font-size:4vh;letter-spacing:.16em;color:#fff}
+body:not(.fx) .nameplate,body:not(.fx) #status,body:not(.fx) .bub,body:not(.fx) .banner.pop,body:not(.fx) .tag{display:none!important}
+body:not(.fx) #kleg{display:none}body.legend #kleg{display:block!important;bottom:2vh}
+body:not(.fx) #unlock{top:1vh;right:1vw;left:auto;transform:none;font-size:2vh;padding:.3vh 1vh;background:#000a;color:var(--ph);border:.2vh solid var(--ph);opacity:.85}
+body:not(.fx) #pop{width:9vh;left:1vw;bottom:2vh;padding:.3vh;background:#000a;box-shadow:none}
+body:not(.fx) #pop .live{font-size:1.6vh;margin-top:-1vh}body:not(.fx) #pop .eq{height:1.6vh}
+body:not(.fx) #call{top:1.5vh;left:50%;width:auto;height:auto;clip-path:none;border-radius:99px;padding:.5vh 2.6vh;transform:translateX(-50%)!important;animation:none}
+body:not(.fx) #call b{font-size:3.4vh;-webkit-text-stroke:0;padding:0}body:not(.fx) #call b.long{font-size:3vh}body:not(.fx) #call span{display:none}
+body:not(.fx) .dmg{font-size:7vh;-webkit-text-stroke:.25vh #000;top:12%}
+body:not(.fx) .cc .im::after,body:not(.fx) .mk::after{display:none!important}
+body:not(.fx) #unlock{top:auto;bottom:1vh;left:50%;right:auto;transform:translateX(-50%)}
+</style></head><body class="crt"><div id="app"><div class="head"><span class="p">P666</span><span class="title gl" data-t="GlitchOut Fighter">GlitchOut Fighter</span><span id="hmid"></span><span id="hr"></span></div><div id="body"></div><div id="ov"></div></div><div class="tag" id="tag"></div><div id="kleg">Keyboard players ×10 · <b style="color:var(--A)">PINK</b> A tap · Q W E moves · Z taunt &nbsp;|&nbsp; <b style="color:var(--B)">CYAN</b> L tap · I O P moves · M taunt</div><div id="unlock">Sound off — click anywhere to enable</div>
 <script src="/assets/art.js"></script><script src="/assets/brand.js"></script>
 <script>
 const COL={A:'#ff3fa4',B:'#00f0ff'},$=id=>document.getElementById(id);
@@ -114,7 +134,8 @@ fetch('/info').then(r=>r.json()).then(j=>{$('tag').textContent=(j.live?'MachGen 
 const es=new EventSource('/events');es.onmessage=e=>{S=JSON.parse(e.data);render()};
 const sec=ms=>Math.ceil(ms/1000);
 const adm=c=>fetch('/admin/'+c).catch(()=>{});
-function unlock(){if(audioOK)return;audioOK=true;$('unlock').style.display='none';[0,1].forEach(i=>$('v'+i)&&($('v'+i).muted=false))}
+const QS=new URLSearchParams(location.search),MUTE=QS.has('mute');if(MUTE)$('unlock').style.display='none';
+function unlock(){if(MUTE||audioOK)return;audioOK=true;$('unlock').style.display='none';[0,1].forEach(i=>$('v'+i)&&($('v'+i).muted=false))}
 addEventListener('click',unlock);
 const KB={q:['A','move','attacco'],w:['A','move','guardia'],e:['A','move','speciale'],i:['B','move','attacco'],o:['B','move','guardia'],p:['B','move','speciale'],a:['A','tap'],l:['B','tap'],z:['A','taunt'],m:['B','taunt']};
 let lastKb=0;
@@ -125,7 +146,8 @@ function kbKey(e){ // keyboard players (weight x10): pink A/Q/W/E/Z, cyan L/I/O/
   else if(kind==='taunt'&&S.taunts&&S.taunts.length)adm(`taunt?team=${t}&id=${S.taunts[Math.floor(Math.random()*S.taunts.length)].id}`);
   return true;
 }
-addEventListener('keydown',e=>{unlock();if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(kbKey(e))return;if(e.key===' '){e.preventDefault();adm(S.phase==='lobby'?'start':'skip')}if(e.key==='r')adm('reset');if(e.key==='b')adm('bots?n=20');if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x')adm('halt')});
+if(QS.has('fx'))document.body.classList.add('fx');
+addEventListener('keydown',e=>{unlock();if(e.key==='k'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName))document.body.classList.toggle('legend');if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(kbKey(e))return;if(e.key===' '){e.preventDefault();adm(S.phase==='lobby'?'start':'skip')}if(e.key==='r')adm('reset');if(e.key==='b')adm('bots?n=20');if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x')adm('halt')});
 function ov(html,ms){clearTimeout(ovT);$('ov').innerHTML=html;if(ms)ovT=setTimeout(()=>{$('ov').innerHTML=''},ms)}
 // character picture: duotone slice-shift image, or the emoji icon if no portrait exists. cls = dA/dB/dG/dY
 const pic=(c,cls)=>c.img?`<div class="gs ${cls}" style="--img:url(${c.img})"></div>`:`<div class="ic">${c.icon}</div>`;
@@ -194,7 +216,7 @@ function updateArena(){
 function playFx(){
   if(S.phase!=='fight'||!S.last||S.last.beat===fx.beat)return;fx.beat=S.last.beat;const l=S.last;
   const pop=(side,txt,c)=>{const d=document.createElement('div');d.className='dmg';d.style.cssText=`--c:${c};${side==='A'?'left':'right'}:14%`;d.textContent=txt;$('stage').appendChild(d);setTimeout(()=>d.remove(),1900)};
-  if(l.dA)pop('B','-'+l.dA,COL.A);if(l.dB)pop('A','-'+l.dB,COL.B);
+  if(l.dA>=l.dB){if(l.dA)pop('B','-'+l.dA,COL.A)}else pop('A','-'+l.dB,COL.B);
   if(!S.live){const s=c=>{const e=$('mk'+c)&&$('mk'+c).firstElementChild;if(e){e.classList.remove('hit');void e.offsetWidth;e.classList.add('hit')}};if(l.dA)s('B');if(l.dB)s('A')}
   ov(`<div class="banner pop">${MVL('A',l.ma)} <small>vs</small> ${MVL('B',l.mb)}</div>`,2500);
 }
@@ -221,4 +243,4 @@ function playTaunt(){
   const d=document.createElement('div');d.className='bub '+f.from;d.innerHTML=BR.ART.alien(7);d.style.cssText+=`;${f.from==='A'?'right':'left'}:12%`; // thrown at the OTHER fighter
   $('stage').appendChild(d);setTimeout(()=>d.remove(),2300);
 }
-</script><script src="/debug-panel.js"></script></body></html>
+</script><script>if(!new URLSearchParams(location.search).has('nodock'))document.write('<script src="/debug-panel.js"><\/script>')</script></body></html>
