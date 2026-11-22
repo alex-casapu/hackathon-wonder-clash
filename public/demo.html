@@ -1,22 +1,27 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cage Match — Demo</title>
+<title>Weird Wrestling — Demo</title>
 <style>
 html,body{margin:0;height:100%;background:#05030a;overflow:hidden;font-family:-apple-system,system-ui,sans-serif}
 .wrap{display:grid;grid-template-columns:1fr 31vw;height:100vh}
 iframe{border:0;width:100%;height:100%;background:#0a0612}
 .side{display:flex;flex-direction:column;border-left:1px solid #ffffff18;min-width:0}
-.side header{padding:8px 12px;color:#9a8fba;font-size:12px;letter-spacing:.15em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.side header{padding:6px 10px;display:flex;gap:6px;align-items:center}
+.side header span{flex:1;color:#9a8fba;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
 .side iframe{flex:1;min-height:0}
-button{font:inherit;font-size:11px;background:#251a3d;color:#fff;border:0;border-radius:6px;padding:4px 8px;cursor:pointer}
+button{font:inherit;font-size:11px;background:#251a3d;color:#fff;border:0;border-radius:6px;padding:5px 9px;cursor:pointer}button.on{background:#7b3bff}
+#play{display:none}
 </style></head><body>
 <div class="wrap">
   <iframe id="scr" src="/screen"></iframe>
-  <div class="side"><header><span>📱 The crowd (simulated)</span><span><button onclick="go()">+ join</button></span></header><iframe id="sim" src="/sim?embed=1"></iframe></div>
+  <div class="side"><header><span id="ttl">The crowd (simulated)</span><button id="tc" class="on" onclick="tab('crowd')">Crowd</button><button id="tp" onclick="tab('play')">▶ Play yourself</button><button onclick="go()">+ join</button></header>
+    <iframe id="sim" src="/sim?embed=1"></iframe><iframe id="play" src="/phone"></iframe></div>
 </div>
 <script>
-// /demo?n=40&auto=1  -> n virtual phones join automatically (staggered, like people scanning the QR)
+// /demo?n=40&auto=1 -> n virtual phones join (staggered). "Play yourself" = a real phone view next to the simulated crowd,
+// usable with mouse/touch by the presenter or a volunteer. The screen also takes keyboard players (see legend).
 const n=new URLSearchParams(location.search).get('n')||'30';
 function go(){document.getElementById('sim').src='/sim?embed=1&n='+n+'&auto=1'}
+function tab(t){const c=t==='crowd';document.getElementById('sim').style.display=c?'block':'none';document.getElementById('play').style.display=c?'none':'block';document.getElementById('tc').className=c?'on':'';document.getElementById('tp').className=c?'':'on';document.getElementById('ttl').textContent=c?'The crowd (simulated)':'You are a player'}
 if(new URLSearchParams(location.search).has('auto'))go();
 </script></body></html>

@@ -5,6 +5,7 @@ export const L = {
   economy: process.env.ECONOMY !== '0',           // 2 branches per round instead of 3
   audio: process.env.VIDEO_AUDIO !== '0',         // sound inside the generated clips (same price)
   voice: process.env.AUTO_VOICE !== '0',          // generate a voice line on demand the first time it is needed (then cached)
+  mock: false,                                    // runtime switch from the control page: no paid MachGen calls while true
   stats: { holds: 0, fallbacks: 0, branchSecs: [] },
 };
 export const EST = { image: 0.005, videoPerSec: 0.015, tts: 0.065 }; // estimates until the real billing arrives

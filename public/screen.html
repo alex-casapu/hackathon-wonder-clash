@@ -71,7 +71,8 @@ html,body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 120%,#3
 .gen .fc b{font-size:3.4vh;color:var(--c)}.gen .fc small{font-size:2.2vh;color:var(--mut)}
 .gen .vs{font-size:10vh;font-weight:900}
 .tag{position:fixed;bottom:7vh;right:1vw;font-size:1.4vh;color:var(--mut);z-index:2}
-</style></head><body><div id="app"><div class="head"><span class="title">⚔️ WEIRD WRESTLING</span><span id="hmid"></span><span id="hr"></span></div><div id="body"></div><div id="ov"></div></div><div class="tag" id="tag"></div><div id="unlock">🔊 Click anywhere to enable sound</div>
+#kleg{position:fixed;left:1vw;bottom:5vh;z-index:2;font-size:1.4vh;color:var(--mut);opacity:.75;pointer-events:none}
+</style></head><body><div id="app"><div class="head"><span class="title">⚔️ WEIRD WRESTLING</span><span id="hmid"></span><span id="hr"></span></div><div id="body"></div><div id="ov"></div></div><div class="tag" id="tag"></div><div id="kleg">⌨️ Keyboard players ×10 · <b style="color:#ff3d81">PINK</b> A tap · Q W E moves · Z taunt &nbsp;|&nbsp; <b style="color:#19d3ff">CYAN</b> L tap · I O P moves · M taunt</div><div id="unlock">🔊 Click anywhere to enable sound</div>
 <script>
 const COL={A:'#ff3d81',B:'#19d3ff'},$=id=>document.getElementById(id);
 let S=null,mode='',fx={},ovT=null,act=0,curSeq=0,preSeq=0,audioOK=false,sayT=null,voice=null;
@@ -81,7 +82,16 @@ const sec=ms=>Math.ceil(ms/1000);
 const adm=c=>fetch('/admin/'+c).catch(()=>{});
 function unlock(){if(audioOK)return;audioOK=true;$('unlock').style.display='none';[0,1].forEach(i=>$('v'+i)&&($('v'+i).muted=false))}
 addEventListener('click',unlock);
-addEventListener('keydown',e=>{unlock();if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(e.key===' '){e.preventDefault();adm(S.phase==='lobby'?'start':'skip')}if(e.key==='r')adm('reset');if(e.key==='b')adm('bots?n=20');if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x')adm('halt')});
+const KB={q:['A','move','attacco'],w:['A','move','guardia'],e:['A','move','speciale'],i:['B','move','attacco'],o:['B','move','guardia'],p:['B','move','speciale'],a:['A','tap'],l:['B','tap'],z:['A','taunt'],m:['B','taunt']};
+let lastKb=0;
+function kbKey(e){ // keyboard players (weight x10): pink A/Q/W/E/Z, cyan L/I/O/P/M
+  const k=KB[e.key];if(!k||!S||S.phase!=='fight')return false;const [t,kind,v]=k,now=Date.now();
+  if(kind==='tap'){if(now-lastKb<70)return true;lastKb=now;adm(`push?team=${t}&n=3`)}
+  else if(kind==='move')adm(`move?team=${t}&m=${v}`);
+  else if(kind==='taunt'&&S.taunts&&S.taunts.length)adm(`taunt?team=${t}&id=${S.taunts[Math.floor(Math.random()*S.taunts.length)].id}`);
+  return true;
+}
+addEventListener('keydown',e=>{unlock();if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(kbKey(e))return;if(e.key===' '){e.preventDefault();adm(S.phase==='lobby'?'start':'skip')}if(e.key==='r')adm('reset');if(e.key==='b')adm('bots?n=20');if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x')adm('halt')});
 function ov(html,ms){clearTimeout(ovT);$('ov').innerHTML=html;if(ms)ovT=setTimeout(()=>{$('ov').innerHTML=''},ms)}
 const pic=c=>c.img?`<img src="${c.img}">`:`<div class="ic">${c.icon}</div>`;
 const MVL=(k,m)=>m==='speciale'?`✨ ${S[k].special}`:m==='attacco'?'⚔️ Attack':'🛡️ Guard';

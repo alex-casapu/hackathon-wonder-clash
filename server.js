@@ -30,7 +30,7 @@ let S, players = new Map(), clients = new Set(), timer = null, runId = 0, videoS
 const newSide = () => ({ char: null, hp: 100, maxhp: 100, stats: null, tapsBeat: 0, charge: 0, tilt: 0 });
 function fresh() {
   runId++; media.cancelAll(); // a reset also drops any task that is still queued
-  S = { phase: 'lobby', ends: 0, beat: 0, beatPhase: null, last: null, winner: null, mvp: null, teams: { A: newSide(), B: newSide() }, gen: 'idle', video: { seq: 0, url: null }, next: null, intro: null, live: false, says: [], call: null, fx: null };
+  S = { phase: 'lobby', ends: 0, beat: 0, beatPhase: null, last: null, winner: null, mvp: null, teams: { A: newSide(), B: newSide() }, gen: 'idle', forceWin: null, video: { seq: 0, url: null }, next: null, intro: null, live: false, says: [], call: null, fx: null };
   for (const p of players.values()) { p.vote = null; p.team = null; p.taps = 0; p.tapsBeat = 0; p.move = null; p.tauntAt = 0; }
 }
 fresh();
@@ -48,7 +48,7 @@ const voteCounts = () => { const o = {}; for (const p of players.values()) if (p
 
 // ---------- snapshot / push ----------
 const callActive = (type, team) => S.call && S.call.type === type && Date.now() < S.call.until && (S.call.team === 'both' || S.call.team === team);
-function movesTally(k) { const o = { attacco: 0, guardia: 0, speciale: 0 }; for (const p of members(k)) if (p.move) o[p.move]++; return o; }
+function movesTally(k) { const o = { attacco: 0, guardia: 0, speciale: 0 }; for (const p of members(k)) if (p.move) o[p.move] += p.w || 1; return o; }
 const callView = () => (S.call && Date.now() < S.call.until ? { type: S.call.type, team: S.call.team, text: S.call.text, rem: S.call.until - Date.now(), seq: S.call.seq } : null);
 const rosterView = () => { const v = voteCounts(); return ROSTER.map((c) => ({ ...pub(c), votes: v[c.id] || 0 })); };
 function snap(p) {
@@ -76,10 +76,14 @@ function dbgSnap() {
     inflight: L.inflight.size, projected: +projected.toFixed(2), branchN, stats: { holds: L.stats.holds, fallbacks: L.stats.fallbacks, avgBranch: br.length ? +(br.reduce((a, b) => a + b, 0) / br.length).toFixed(1) : null, maxBranch: br.length ? +Math.max(...br).toFixed(1) : null },
     audioMissing: { n: miss.length, est: +(miss.length * EST.tts).toFixed(2) }, roster: { have: ROSTER.length - rm.length, total: ROSTER.length, est: +(rm.length * EST.image).toFixed(3) },
     style: styleId(), styles: Object.entries(STYLES).map(([id, s]) => [id, s.name]),
+    mock: L.mock, forceWin: S.forceWin, castSecs: T.cast / 1000, bots: [...players.values()].filter((x) => x.bot).length, adminPin: !!process.env.ADMIN_PIN,
+    rosterList: ROSTER.map((c) => ({ id: c.id, name: c.name })), taunts: TAUNTS.map((t) => t.id),
+    fighters: { A: fighterDbg('A'), B: fighterDbg('B') }, hostEvents: Object.keys(HOST),
     items: L.items.slice(-30).reverse().map((r) => ({ n: r.n, kind: r.kind, label: r.label, usd: +(r.actual ?? r.est).toFixed(3), real: r.actual != null, status: r.status, age: Math.round((Date.now() - r.t0) / 1000) })),
     logs: L.logs.slice(-40),
   };
 }
+const fighterDbg = (k) => { const x = S.teams[k]; return { id: x.char?.id || null, name: x.char?.name || null, hp: Math.round(x.hp), maxhp: x.maxhp, charge: +x.charge.toFixed(2), tilt: +x.tilt.toFixed(2), n: members(k).length }; };
 function push() {
   for (const c of clients) { try { c.res.write(`data: ${JSON.stringify(snap(c.pid && players.get(c.pid)))}\n\n`); } catch {} }
   if (simClients.size) { const d = `data: ${JSON.stringify(simSnap())}\n\n`; for (const r of simClients) { try { r.write(d); } catch {} } }
@@ -138,7 +142,7 @@ function endCasting() { // the two most voted characters fight; everyone then ba
   const v = voteCounts(), order = [...ROSTER].sort(() => Math.random() - 0.5).sort((a, b) => (v[b.id] || 0) - (v[a.id] || 0));
   [S.teams.A, S.teams.B].forEach((x, i) => { const c = order[i]; x.char = c; x.hp = x.maxhp = c.stats.hp; x.stats = { atk: c.stats.atk, spec: c.stats.spec }; });
   const A = S.teams.A.char, B = S.teams.B.char;
-  for (const p of players.values()) p.team = p.vote === A.id ? 'A' : p.vote === B.id ? 'B' : null;
+  for (const p of players.values()) p.team = p.kbd ? p.id.slice(-1) : p.vote === A.id ? 'A' : p.vote === B.id ? 'B' : null;
   for (const p of players.values()) if (!p.team) p.team = smallerSide(); // everyone else: the side with fewer fans
   log(`[cast] ${A.name} vs ${B.name} (votes ${v[A.id] || 0} / ${v[B.id] || 0})`);
   startGenerating();
@@ -210,6 +214,7 @@ async function runFight() {
     S.beatPhase = 'lock'; push();
     const g = gatherVotes();
     let r = computeBeat(k, g), clip = null;
+    if (S.forceWin) { r = computeBeat(k, g, S.forceWin); log(`[control] outcome of round ${k} forced to ${S.forceWin}`); S.forceWin = null; }
     if (r.cls === 'tie' && branches && !branches.tie) r = computeBeat(k, g, g.ca >= g.cb ? 'A' : 'B'); // economy mode: no tie branch
     if (branches) {
       const want = branches[r.cls], deadline = P + len + HOLD_MAX_MS;
@@ -260,7 +265,7 @@ function setMove(p, m) { if (S.phase === 'fight' && S.beatPhase === 'vote' && p.
 function tap(p, n) {
   n = Math.max(0, Math.min(n | 0, 12)); if (!n || !p.team || S.phase !== 'fight' || S.beatPhase !== 'vote' || p.tapsBeat >= TAP_CAP) return;
   if (callActive('tap', p.team)) n *= 2; // the host called a tap storm
-  n = Math.min(n, TAP_CAP - p.tapsBeat); p.tapsBeat += n; p.taps += n; S.teams[p.team].tapsBeat += n;
+  const w = p.w || 1; n = Math.min(n, TAP_CAP - p.tapsBeat); p.tapsBeat += n; p.taps += n; S.teams[p.team].tapsBeat += n * w;
   const x = S.teams[p.team], na = Math.max(1, members(p.team).length); x.charge = Math.min(1, x.tapsBeat / (na * TAP_REF)); // live meter
 }
 function doTaunt(p, tid) { // insult the other fighter: it gets flustered (tilt) and shouts back
@@ -278,6 +283,21 @@ function doTaunt(p, tid) { // insult the other fighter: it gets flustered (tilt)
   push(); return true;
 }
 
+// ---------- keyboard / control players (weight 10) and forced matchup ----------
+function kbd(team) {
+  if (!['A', 'B'].includes(team) || !['generating', 'fight'].includes(S.phase)) return null;
+  let p = players.get('kbd-' + team);
+  if (!p) { p = { id: 'kbd-' + team, vote: null, team, taps: 0, tapsBeat: 0, move: null, bot: false, kbd: true, w: 10, tauntAt: 0, sideAt: 0 }; players.set(p.id, p); }
+  p.team = team; return p;
+}
+function forceMatch(aId, bId) { // skip casting: these two fight
+  const A = byId(aId), B = byId(bId); if (!A || !B || A === B || S.phase !== 'lobby') return false;
+  S.teams.A = newSide(); S.teams.B = newSide();
+  [[S.teams.A, A], [S.teams.B, B]].forEach(([x, c]) => { x.char = c; x.hp = x.maxhp = c.stats.hp; x.stats = { atk: c.stats.atk, spec: c.stats.spec }; });
+  for (const p of players.values()) p.team = p.kbd ? p.id.slice(-1) : null;
+  for (const p of players.values()) if (!p.team) p.team = smallerSide();
+  log(`[control] forced matchup ${A.name} vs ${B.name}`); startGenerating(); return true;
+}
 // ---------- bots (solo testing, server side) ----------
 function addBots(n) { for (let i = 0; i < n; i++) { const p = join(); p.bot = true; } push(); }
 setInterval(() => {
@@ -294,6 +314,7 @@ setInterval(() => {
 
 // ---------- http ----------
 const isLocal = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress) && !req.headers['cf-connecting-ip'] && !req.headers['x-forwarded-for'];
+const isAdmin = (req, u) => isLocal(req) || (!!process.env.ADMIN_PIN && u.searchParams.get('pin') === process.env.ADMIN_PIN && !req.headers['cf-connecting-ip'] && !req.headers['x-forwarded-for']);
 const lan = () => { for (const l of Object.values(os.networkInterfaces())) for (const i of l) if (i.family === 'IPv4' && !i.internal) return i.address; return 'localhost'; };
 const publicUrl = () => (process.env.PUBLIC_URL || `http://${lan()}:${PORT}`).replace(/\/$/, '');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.mp4': 'video/mp4', '.mp3': 'audio/mpeg', '.svg': 'image/svg+xml' };
@@ -318,8 +339,8 @@ http.createServer(async (req, res) => {
     const c = { res, pid: u.searchParams.get('pid') }; clients.add(c); req.on('close', () => clients.delete(c));
     return res.write(`data: ${JSON.stringify(snap(c.pid && players.get(c.pid)))}\n\n`);
   }
-  if (p === '/sim-events' || p === '/debug-events') { // localhost only
-    if (!isLocal(req)) { res.writeHead(403); return res.end('local only'); }
+  if (p === '/sim-events' || p === '/debug-events') { // localhost only (debug stream also with the admin PIN)
+    if (!(p === '/sim-events' ? isLocal(req) : isAdmin(req, u))) { res.writeHead(403); return res.end('local only'); }
     sse(res); const set = p === '/sim-events' ? simClients : dbgClients; set.add(res); req.on('close', () => set.delete(res));
     return res.write(`data: ${JSON.stringify(p === '/sim-events' ? simSnap() : dbgSnap())}\n\n`);
   }
@@ -344,8 +365,8 @@ http.createServer(async (req, res) => {
     if (p === '/api/taunt') return json(res, { ok: doTaunt(pl, b.tid) });
   }
   if (p.startsWith('/admin/')) {
-    if (!isLocal(req)) { res.writeHead(403); return res.end('local only'); }
-    const cmd = p.slice(7), q = u.searchParams;
+    if (!isAdmin(req, u)) { res.writeHead(403); return res.end('admin only'); }
+    const cmd = p.slice(7), q = u.searchParams; let json_ok = 1;
     if (cmd === 'start' && S.phase === 'lobby') startCasting();
     else if (cmd === 'skip') {
       if (S.phase === 'casting') { clearTimeout(timer); endCasting(); }
@@ -362,9 +383,21 @@ http.createServer(async (req, res) => {
     else if (cmd === 'audio') L.audio = q.get('on') === '1';
     else if (cmd === 'voice') L.voice = q.get('on') === '1';
     else if (cmd === 'warm') audio.warm();
+    else if (cmd === 'match') json_ok = forceMatch(q.get('a'), q.get('b'));
+    else if (cmd === 'force') S.forceWin = ['A', 'B', 'tie'].includes(q.get('win')) ? q.get('win') : null;
+    else if (cmd === 'call') { const t = q.get('type'), tm = q.get('team') || 'both'; say(t === 'taunt' ? 'call_taunt' : tm === 'A' ? 'call_A' : tm === 'B' ? 'call_B' : 'call_tap', true); }
+    else if (cmd === 'hostsay') say(q.get('event'), true);
+    else if (cmd === 'charsay') charSay(q.get('team'), q.get('key') || 'entrance');
+    else if (cmd === 'speak') { const t = (q.get('text') || '').slice(0, 220), vk = q.get('voice') || 'host'; if (t) { sayAt = Date.now(); speak(vk, vk === 'host' ? 'host' : (q.get('who') || 'A'), t); } }
+    else if (cmd === 'push') { const k = kbd(q.get('team')); if (k) tap(k, Number(q.get('n') || 3)); }
+    else if (cmd === 'move') { const k = kbd(q.get('team')); if (k) { setMove(k, q.get('m')); push(); } }
+    else if (cmd === 'taunt') { const k = kbd(q.get('team')); if (k) doTaunt(k, q.get('id') || TAUNTS[0].id); }
+    else if (cmd === 'botsclear') { for (const [id, pl] of players) if (pl.bot) players.delete(id); push(); }
+    else if (cmd === 'mock') { L.mock = q.get('on') === '1'; log(`[control] mode: ${L.mock ? 'MOCK' : 'LIVE'}`); }
+    else if (cmd === 'cast') T.cast = Math.max(5, Math.min(120, Number(q.get('secs')) || 25)) * 1000;
     else if (cmd === 'roster') media.generateRoster(styleId(), q.get('id') || undefined).then(() => push());
     else if (cmd === 'style' && S.phase === 'lobby') { setStyle(q.get('name')); log(`[style] ${STYLES[styleId()].name}`); push(); }
-    return json(res, { ok: 1, phase: S.phase, players: players.size, halted: L.halted });
+    return json(res, { ok: json_ok, phase: S.phase, players: players.size, halted: L.halted });
   }
   if (p === '/styles.json') return json(res, { current: styleId(), local: isLocal(req), styles: styleGallery() });
   if (p === '/styles') return serve(req, res, path.join(ROOT, 'public/styles.html'));
@@ -375,6 +408,7 @@ http.createServer(async (req, res) => {
   if (p === '/screen') return serve(req, res, path.join(ROOT, 'public/screen.html'));
   if (p === '/sim') return serve(req, res, path.join(ROOT, 'public/sim.html'));
   if (p === '/demo') return serve(req, res, path.join(ROOT, 'public/demo.html'));
+  if (p === '/control') return serve(req, res, path.join(ROOT, 'public/control.html'));
   if (p === '/debug-panel.js') return serve(req, res, path.join(ROOT, 'public/debug-panel.js'));
   if (p === '/host.png') return serve(req, res, path.join(ROOT, 'public/host.png'));
   res.writeHead(404); res.end('not found');
