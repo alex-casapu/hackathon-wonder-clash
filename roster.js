@@ -80,7 +80,8 @@ export const byId = (id) => ROSTER.find((c) => c.id === id);
 export const imgFileFor = (sid, c) => path.join(DIR, sid, `${c.id}.png`);
 export const imgFile = (c) => imgFileFor(cur, c);
 export const imgUrl = (c) => (fs.existsSync(imgFile(c)) ? `/media/roster/${cur}/${c.id}.png` : null);
+export const thumbUrl = (c) => (fs.existsSync(path.join(DIR, cur, 'thumb', `${c.id}.jpg`)) ? `/media/roster/${cur}/thumb/${c.id}.jpg` : imgUrl(c)); // small JPEG for phones
 export const imgMissing = (sid = cur) => ROSTER.filter((c) => !fs.existsSync(imgFileFor(sid, c)));
 export const styleGallery = () => Object.entries(STYLES).map(([id, s]) => ({ id, name: s.name, blurb: s.blurb, images: Object.fromEntries(ROSTER.map((c) => [c.id, fs.existsSync(imgFileFor(id, c)) ? `/media/roster/${id}/${c.id}.png` : null])) }));
 // public view sent to the browsers
-export const pub = (c) => ({ id: c.id, gender: c.gender, name: c.name, icon: c.icon, tagline: c.tagline, bio: c.bio, special: c.special, img: imgUrl(c) });
+export const pub = (c) => ({ id: c.id, gender: c.gender, name: c.name, icon: c.icon, tagline: c.tagline, bio: c.bio, special: c.special, img: imgUrl(c), thumb: thumbUrl(c) });

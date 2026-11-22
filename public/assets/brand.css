@@ -1,0 +1,31 @@
+/* Weird Wrestling — visual identity v1 ("09 Mix"): emergency Teletext page + phosphor war room + trading-card punch.
+   Tokens, glitch kit and duotone classes shared by screen / phone / sim. Load fonts with the <link> in each page. */
+:root{
+  --void:#010a05;--ph:#3dff8f;--dim:#0e4a2a;--k:#000;--w:#fff;--y:#ffe600;--c:#00f0ff;--m:#ff3fa4;--r:#ff2a2a;--b:#2a3cff;
+  --amb:#ffb000;--card:#fff1c9;--or:#ff6a1a;
+  --A:#ff3fa4;--B:#00f0ff;                       /* corners: A pink (left), B cyan (right). Never change: the host says "pink corner / cyan corner" */
+  --f-disp:'Rubik Glitch',Impact,system-ui,sans-serif;   /* names, titles, wordmark: >= 24px */
+  --f-body:'VT323',ui-monospace,Menlo,monospace;         /* text, subtitles, data */
+  --f-bang:'Bangers',Impact,sans-serif;                  /* bursts and onomatopoeia only */
+}
+/* glitch kit 1: RGB split on text. Usage: <span class="gl" data-t="TEXT">TEXT</span> */
+.gl{position:relative;display:inline-block}
+.gl::before,.gl::after{content:attr(data-t);position:absolute;left:0;top:0;pointer-events:none;text-shadow:none;white-space:inherit}
+.gl::before{color:var(--c);transform:translateX(-.035em);clip-path:inset(0 0 60% 0);animation:g1 3.2s steps(1) infinite}
+.gl::after{color:var(--m);transform:translateX(.035em);clip-path:inset(55% 0 0 0);animation:g2 2.4s steps(1) infinite}
+@keyframes g1{0%{clip-path:inset(0 0 60% 0)}8%{clip-path:inset(30% 0 40% 0);transform:translateX(-.07em)}10%{clip-path:inset(0 0 90% 0)}40%{clip-path:inset(70% 0 5% 0);transform:translateX(.05em)}42%,100%{clip-path:inset(0 0 100% 0)}}
+@keyframes g2{0%{clip-path:inset(100% 0 0 0)}15%{clip-path:inset(20% 0 55% 0);transform:translateX(.07em)}18%{clip-path:inset(60% 0 10% 0)}60%{clip-path:inset(5% 0 80% 0);transform:translateX(-.06em)}63%,100%{clip-path:inset(100% 0 0 0)}}
+/* glitch kit 2: slice shift on an image. Usage: <div class="gs dA" style="--img:url(...)"></div> (dA pink, dB cyan, dG green, dY amber duotone) */
+.gs{position:relative;overflow:hidden;background:var(--img) center/cover}
+.gs::before,.gs::after{content:"";position:absolute;inset:0;background:var(--img) center/cover;pointer-events:none;filter:brightness(1.8)}
+.gs::before{clip-path:inset(0 0 100% 0);animation:s1 4.2s steps(1) infinite}
+.gs::after{clip-path:inset(100% 0 0 0);animation:s2 5.3s steps(1) infinite}
+@keyframes s1{0%,30%{clip-path:inset(0 0 100% 0)}31%{clip-path:inset(22% 0 58% 0);transform:translateX(5%)}33%{clip-path:inset(60% 0 25% 0);transform:translateX(-6%)}35%,100%{clip-path:inset(0 0 100% 0)}}
+@keyframes s2{0%,70%{clip-path:inset(100% 0 0 0)}71%{clip-path:inset(40% 0 40% 0);transform:translateX(-7%)}73%{clip-path:inset(10% 0 80% 0);transform:translateX(4%)}75%,100%{clip-path:inset(100% 0 0 0)}}
+.dG{filter:url(#dG)}.dA{filter:url(#dA)}.dB{filter:url(#dB)}.dY{filter:url(#dY)}
+/* glitch kit 3: tracking band. Put <div class="trk"></div> inside a position:relative container */
+.trk{position:absolute;left:0;right:0;height:5%;z-index:9;pointer-events:none;background:linear-gradient(#3dff8f14,#3dff8f40 50%,#3dff8f14);mix-blend-mode:screen;animation:trk 5.2s steps(1) infinite}
+@keyframes trk{0%{top:-10%}22%{top:30%;transform:translateX(1%)}25%{top:33%;transform:translateX(-.7%)}28%{top:-10%}62%{top:70%;transform:translateX(-1.2%)}66%,100%{top:-10%}}
+/* CRT surface: scanlines + vignette over the whole page (below the debug dock, z-index 50) */
+.crt::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:40;background:radial-gradient(ellipse at 50% 50%,transparent 60%,#000a),repeating-linear-gradient(0deg,#0004 0 1px,transparent 1px 3px)}
+@media(prefers-reduced-motion:reduce){.gl::before,.gl::after,.gs::before,.gs::after,.trk{animation:none}}

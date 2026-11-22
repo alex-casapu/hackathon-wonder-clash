@@ -32,6 +32,17 @@ Debug in fondo allo schermo: spesa per tipo, tetto di spesa (`MAX_SPEND`, defaul
 
 Sei combattenti cyber-surreali, uno stile solo (`neon-disruptor`, in `roster.js`): Mercury (pelle di mercurio), Null (volto-specchio nero), Doctor Moth (ali di vetro), Seraph (aureola olografica), Orchid (orchidee bioluminescenti), Widow (zampe di ragno cromate). Ritratti fatti con **Krea 3** (generatore creativo, circa 0,027 $ l'uno) e salvati in `media/roster/neon-disruptor/`; le versioni vecchie sono in `media/roster/archive/`. I ritratti sono 16:9: nelle schede si vede il centro.
 
+## Brand (visual identity v1, "Mix")
+
+Emergency Teletext page + phosphor war room + trading-card punch. Everything in the UI is English. Source of truth: `public/assets/brand.css` (tokens + glitch kit), `brand.js` (duotone filters, starburst), `art.js` (pixel sprites: saucer, martian, robot, satellite), loaded by `screen.html`, `phone.html`, `sim.html`.
+
+- Corners never change: **A = pink `#ff3fa4` (left)**, **B = cyan `#00f0ff` (right)** (the host says "pink corner / cyan corner" in cached audio).
+- Fonts: Rubik Glitch (names, titles, >= 24px), VT323 (text, subtitles, data), Bangers (bursts only). Loaded from Google Fonts with system fallbacks, so the venue needs internet or the fonts fall back.
+- Glitch kit: `.gl` RGB split on text, `.gs` slice shift on an image (duotone `dA` pink / `dB` cyan / `dG` green / `dY` amber for the host), `.trk` tracking band. Respects `prefers-reduced-motion`.
+- Phones use small JPEG thumbnails (`media/roster/<style>/thumb/<id>.jpg`, exposed as `thumb` in the roster view); the big screen uses the full PNG.
+- Static brand files are served from `/assets/*` (`public/assets/`).
+- The debug dock (`debug-panel.js`) is untouched and keeps its own look.
+
 ## File
 
 `server.js` (flusso, voti, motore, catena di clip, SSE, admin) · `media.js` (client MachGen) · `audio.js` (voci con cache) · `roster.js` (personaggi + stili) · `lines.js` (telecronista + insulti) · `ledger.js` (costi, tetto, STOP) · `public/` (phone, screen, sim, demo, styles, debug-panel.js).
