@@ -103,8 +103,9 @@ html,body{margin:0;height:100%;background:var(--void);color:var(--w);font-family
 .gen .fc .cp{background:var(--y);border:.3vh solid #000;border-top:0;padding:.4vh 1.2vh .8vh}
 .gen .fc b{font-family:var(--f-disp);font-weight:400;font-size:4.6vh;text-transform:uppercase;display:block;line-height:1}.gen .fc small{font-size:2.8vh;text-transform:uppercase;line-height:1}
 .gen .vs{font-family:var(--f-bang);font-size:10vh;color:var(--r);background:var(--y);width:24vh;height:24vh;clip-path:var(--burst);display:flex;align-items:center;justify-content:center;-webkit-text-stroke:.4vh #000;paint-order:stroke fill;transform:rotate(-6deg);flex:none}
+#kleg{position:fixed;left:1vw;bottom:5vh;z-index:41;font-size:2.2vh;color:var(--ph);opacity:.75;pointer-events:none;text-transform:uppercase}
 .tag{position:fixed;bottom:7vh;right:1vw;font-size:2.2vh;color:var(--ph);opacity:.7;z-index:41}
-</style></head><body class="crt"><div id="app"><div class="head"><span class="p">P666</span><span class="title gl" data-t="Weird Wrestling">Weird Wrestling</span><span id="hmid"></span><span id="hr"></span></div><div id="body"></div><div id="ov"></div></div><div class="tag" id="tag"></div><div id="unlock">Sound off — click anywhere to enable</div>
+</style></head><body class="crt"><div id="app"><div class="head"><span class="p">P666</span><span class="title gl" data-t="Weird Wrestling">Weird Wrestling</span><span id="hmid"></span><span id="hr"></span></div><div id="body"></div><div id="ov"></div></div><div class="tag" id="tag"></div><div id="kleg">Keyboard players ×10 · <b style="color:var(--A)">PINK</b> A tap · Q W E moves · Z taunt &nbsp;|&nbsp; <b style="color:var(--B)">CYAN</b> L tap · I O P moves · M taunt</div><div id="unlock">Sound off — click anywhere to enable</div>
 <script src="/assets/art.js"></script><script src="/assets/brand.js"></script>
 <script>
 const COL={A:'#ff3fa4',B:'#00f0ff'},$=id=>document.getElementById(id);
@@ -115,7 +116,16 @@ const sec=ms=>Math.ceil(ms/1000);
 const adm=c=>fetch('/admin/'+c).catch(()=>{});
 function unlock(){if(audioOK)return;audioOK=true;$('unlock').style.display='none';[0,1].forEach(i=>$('v'+i)&&($('v'+i).muted=false))}
 addEventListener('click',unlock);
-addEventListener('keydown',e=>{unlock();if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(e.key===' '){e.preventDefault();adm(S.phase==='lobby'?'start':'skip')}if(e.key==='r')adm('reset');if(e.key==='b')adm('bots?n=20');if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x')adm('halt')});
+const KB={q:['A','move','attacco'],w:['A','move','guardia'],e:['A','move','speciale'],i:['B','move','attacco'],o:['B','move','guardia'],p:['B','move','speciale'],a:['A','tap'],l:['B','tap'],z:['A','taunt'],m:['B','taunt']};
+let lastKb=0;
+function kbKey(e){ // keyboard players (weight x10): pink A/Q/W/E/Z, cyan L/I/O/P/M
+  const k=KB[e.key];if(!k||!S||S.phase!=='fight')return false;const [t,kind,v]=k,now=Date.now();
+  if(kind==='tap'){if(now-lastKb<70)return true;lastKb=now;adm(`push?team=${t}&n=3`)}
+  else if(kind==='move')adm(`move?team=${t}&m=${v}`);
+  else if(kind==='taunt'&&S.taunts&&S.taunts.length)adm(`taunt?team=${t}&id=${S.taunts[Math.floor(Math.random()*S.taunts.length)].id}`);
+  return true;
+}
+addEventListener('keydown',e=>{unlock();if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(kbKey(e))return;if(e.key===' '){e.preventDefault();adm(S.phase==='lobby'?'start':'skip')}if(e.key==='r')adm('reset');if(e.key==='b')adm('bots?n=20');if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x')adm('halt')});
 function ov(html,ms){clearTimeout(ovT);$('ov').innerHTML=html;if(ms)ovT=setTimeout(()=>{$('ov').innerHTML=''},ms)}
 // character picture: duotone slice-shift image, or the emoji icon if no portrait exists. cls = dA/dB/dG/dY
 const pic=(c,cls)=>c.img?`<div class="gs ${cls}" style="--img:url(${c.img})"></div>`:`<div class="ic">${c.icon}</div>`;

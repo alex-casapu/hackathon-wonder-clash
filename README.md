@@ -6,7 +6,7 @@ Il pubblico scansiona un QR, **vota il personaggio preferito tra 6** (3 uomini, 
 
 ```bash
 cd clash
-cp .env.example .env     # metti MACHGEN_API_KEY (senza chiave: modalità MOCK, nessun costo)
+cp .env.example .env     # metti MACHGEN_API_KEY e ELEVENLABS_API_KEY (senza chiavi: modalità MOCK, nessun costo)
 node server.js           # --fast = fasi più corte per le prove, --mock = niente chiamate a pagamento
 ```
 
@@ -14,6 +14,13 @@ node server.js           # --fast = fasi più corte per le prove, --mock = nient
 - Demo con telefoni finti: `http://localhost:3000/demo?n=40&auto=1` (schermo + parete di utenti virtuali). Solo parete: `/sim?n=40`.
 - Galleria degli stili: `http://localhost:3000/styles` (si cambia stile dalla lobby, o dal pannello debug).
 - Telefoni: URL stampato all'avvio o `PUBLIC_URL` (tunnel Cloudflare, da fare alla fine).
+
+## Controllo, demo e telefoni (senza tunnel)
+
+- **Pagina di controllo**: `http://localhost:3000/control` — fa partire e giostra i test: start casting, **matchup rapido** (scegli i due lottatori e salta il voto), forza l'esito del prossimo round (rosa vince / ciano vince / scontro), richiami al pubblico (tap storm, taunt wave), battute del cronista, battute dei lottatori, frase libera da pronunciare, bot, giocatori "da tastiera", interruttore **LIVE/MOCK al volo**, costi, tetto di spesa e **STOP ALL**. Da un altro dispositivo sulla stessa rete: imposta `ADMIN_PIN` in `.env` e apri `http://IP-DEL-MAC:3000/control` (chiede il PIN). Mai attraverso il tunnel.
+- **Demo interattiva**: `http://localhost:3000/demo?n=40&auto=1` — schermo + parete di 40 telefoni finti; la scheda **"Play yourself"** a destra è un telefono vero usabile con mouse o touch dal presentatore o da un volontario.
+- **Giocatori da tastiera** (peso x10) sulla pagina schermo durante lo scontro: rosa `A` tap · `Q W E` mosse · `Z` insulto; ciano `L` tap · `I O P` mosse · `M` insulto. Una leggenda è sempre visibile in basso a sinistra.
+- **Telefoni veri senza tunnel**: il QR punta già all'IP del Mac (`http://IP:3000`). Funziona se i telefoni sono sulla stessa rete Wi-Fi. Se il Wi-Fi della sala isola i dispositivi, crea la rete dal Mac (Impostazioni di Sistema > Condivisione > Condivisione Internet) o usa l'hotspot di un telefono per Mac e pubblico: non serve internet per i telefoni, solo per le API del Mac.
 
 ## Flusso
 

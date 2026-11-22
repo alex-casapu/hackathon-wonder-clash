@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Weird Wrestling — Control</title>
+<style>
+:root{--bg:#0b0813;--card:#161127;--fg:#efeaff;--mut:#8f88ad;--A:#ff3d81;--B:#19d3ff;--ok:#3ddc84;--warn:#ffb020;--bad:#ff4d4d}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.4 -apple-system,system-ui,sans-serif}
+body{padding:12px;max-width:1500px;margin:auto}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;position:sticky;top:0;background:var(--bg);padding:6px 0;z-index:5}
+header h1{font-size:17px;margin:0;letter-spacing:.06em}
+.chip{padding:4px 10px;border-radius:99px;background:#241c3d;color:var(--mut);font-weight:600}.chip b{color:var(--fg)}
+.grow{flex:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+.card{background:var(--card);border-radius:14px;padding:12px}
+h3{margin:0 0 8px;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--mut)}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;align-items:center}
+button,select,input{font:inherit;border:0;border-radius:9px;padding:8px 12px;background:#2c2349;color:var(--fg);cursor:pointer}
+button:hover{filter:brightness(1.25)}button:active{transform:scale(.97)}
+button.go{background:#2b8a57}button.pk{background:#a8245a}button.cy{background:#0f7f99}button.warn{background:#9a6a10}button.dim{background:#241c3d;color:var(--mut)}
+button.on{outline:2px solid #ffd23f}
+#stop{background:#e11d2e;color:#fff;font-weight:900;font-size:15px;padding:10px 18px;letter-spacing:.04em}#stop.halted{background:#7a1a22}
+.mut{color:var(--mut)}.ok{color:var(--ok)}.warnc{color:var(--warn)}.bad{color:var(--bad)}
+.bar{height:10px;border-radius:7px;background:#2a2142;overflow:hidden;margin:3px 0}.bar i{display:block;height:100%;transition:width .4s}
+.fh{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fh .nm{font-weight:800;font-size:14px}.fh .A .nm{color:var(--A)}.fh .B .nm{color:var(--B)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}td,th{padding:2px 5px;text-align:left;border-bottom:1px solid #ffffff10}th{color:var(--mut)}
+pre{margin:0;max-height:240px;overflow:auto;font:11px/1.35 ui-monospace,Menlo,monospace;color:#cfc8ee;white-space:pre-wrap}
+a{color:#9ad}
+#banner{display:none;background:#b3121f;color:#fff;font-weight:700;text-align:center;padding:8px;border-radius:10px;margin-bottom:10px}
+#pin{display:none;position:fixed;inset:0;background:#000d;z-index:20;align-items:center;justify-content:center}#pin div{background:var(--card);padding:20px;border-radius:14px;display:flex;gap:8px;flex-direction:column}
+</style></head><body>
+<div id="pin"><div><b>Admin PIN needed</b><span class="mut">This page was opened from another device. Enter the ADMIN_PIN set in .env.</span><input id="pinv" type="password"><button class="go" onclick="setPin()">Connect</button></div></div>
+<header>
+  <h1>⚔️ WEIRD WRESTLING · CONTROL</h1>
+  <span class="chip" id="c-phase"></span><span class="chip" id="c-mode"></span><span class="chip">spent <b id="c-sp">$0</b> / <b id="c-cap"></b></span><span class="chip" id="c-players"></span>
+  <span class="grow"></span>
+  <a href="/screen" target="_blank">screen</a> · <a href="/demo?n=40&auto=1" target="_blank">demo</a> · <a href="/sim?n=40" target="_blank">crowd sim</a> · <a href="/styles" target="_blank">styles</a>
+  <button class="go" onclick="adm('resume')">Resume</button><button id="stop" onclick="adm('halt')">⛔ STOP ALL</button>
+</header>
+<div id="banner">HALTED: match stopped, queued tasks cancelled, paid calls blocked until you press Resume.</div>
+<div class="grid">
+
+<div class="card"><h3>1 · Start a match</h3>
+  <div class="row"><button class="go" onclick="adm('start')">▶ Start casting (crowd votes)</button><button onclick="adm('skip')">Skip phase</button><button onclick="adm('reset')">Reset</button><button class="dim" onclick="adm('wipe')">Clear players</button></div>
+  <div class="row mut">Casting length <input id="cast" type="number" min="5" max="120" style="width:64px"> s <button onclick="adm('cast?secs='+$('cast').value)">Set</button></div>
+  <div class="row"><b>Quick matchup</b> <span class="mut">(skips the vote)</span></div>
+  <div class="row"><select id="qa" style="border-left:4px solid var(--A)"></select> <b>vs</b> <select id="qb" style="border-left:4px solid var(--B)"></select> <button class="go" onclick="quick()">⚡ Fight now</button> <button class="dim" onclick="rnd()">random</button></div>
+  <div class="mut">Works from the lobby. Pink = left side, cyan = right.</div></div>
+
+<div class="card"><h3>2 · Fight (live)</h3>
+  <div class="fh"><div class="A"><div class="nm" id="fa">—</div><div class="bar"><i id="fa-hp" style="background:var(--A)"></i></div><div class="bar"><i id="fa-ch" style="background:#ffd23f"></i></div><div class="mut" id="fa-t"></div></div>
+  <div class="B"><div class="nm" id="fb">—</div><div class="bar"><i id="fb-hp" style="background:var(--B)"></i></div><div class="bar"><i id="fb-ch" style="background:#ffd23f"></i></div><div class="mut" id="fb-t"></div></div></div>
+  <div class="row"><b>Next round outcome</b> <span id="forcetxt" class="mut"></span></div>
+  <div class="row" id="force"><button data-w="" class="dim">Auto (votes)</button><button data-w="A" class="pk">Pink wins</button><button data-w="B" class="cy">Cyan wins</button><button data-w="tie" class="dim">Clash</button></div>
+  <div class="row"><b>Call the crowd</b></div>
+  <div class="row"><button class="warn" onclick="adm('call?type=tap&team=both')">TAP STORM</button><button class="pk" onclick="adm('call?type=tap&team=A')">Pink storm</button><button class="cy" onclick="adm('call?type=tap&team=B')">Cyan storm</button><button class="warn" onclick="adm('call?type=taunt')">TAUNT WAVE</button></div></div>
+
+<div class="card"><h3>3 · Commentator & fighters (audio)</h3>
+  <div class="row"><b>Host says</b></div><div class="row" id="host-ev"></div>
+  <div class="row"><b>Fighters speak</b></div>
+  <div class="row"><span style="color:var(--A)">Pink</span><button onclick="adm('charsay?team=A&key=entrance')">entrance</button><button onclick="adm('charsay?team=A&key=reply')">reply</button><button onclick="adm('charsay?team=A&key=win')">win</button>
+  <span style="color:var(--B);margin-left:10px">Cyan</span><button onclick="adm('charsay?team=B&key=entrance')">entrance</button><button onclick="adm('charsay?team=B&key=reply')">reply</button><button onclick="adm('charsay?team=B&key=win')">win</button></div>
+  <div class="row"><b>Free line</b> <span class="mut">(costs ~$0.03, plays on the screen)</span></div>
+  <div class="row"><select id="sv"></select><input id="stxt" style="flex:1;min-width:160px" placeholder="[shouting] Say anything here!"><button class="warn" onclick="speak()">Speak</button></div></div>
+
+<div class="card"><h3>4 · Crowd & keyboard players</h3>
+  <div class="row"><span class="mut">server bots:</span> <b id="nb">0</b> <button onclick="adm('bots?n=10')">+10</button><button onclick="adm('bots?n=20')">+20</button><button onclick="adm('bots?n=50')">+50</button><button class="dim" onclick="adm('botsclear')">clear bots</button></div>
+  <div class="mut">Bots vote and tap on their own. For the visible phone wall use the demo or crowd-sim page.</div>
+  <div class="row"><b>Push a fighter yourself</b> <span class="mut">(weight ×10, fight only)</span></div>
+  <div class="row"><button class="pk" onmousedown="hold('A')">TAP pink (hold)</button><button class="pk" onclick="adm('move?team=A&m=attacco')">⚔️</button><button class="pk" onclick="adm('move?team=A&m=guardia')">🛡️</button><button class="pk" onclick="adm('move?team=A&m=speciale')">✨</button><button class="pk" onclick="adm('taunt?team=A&id='+tz())">😈</button></div>
+  <div class="row"><button class="cy" onmousedown="hold('B')">TAP cyan (hold)</button><button class="cy" onclick="adm('move?team=B&m=attacco')">⚔️</button><button class="cy" onclick="adm('move?team=B&m=guardia')">🛡️</button><button class="cy" onclick="adm('move?team=B&m=speciale')">✨</button><button class="cy" onclick="adm('taunt?team=B&id='+tz())">😈</button></div>
+  <div class="mut">On the screen page the same works from the keyboard: pink A / Q W E / Z, cyan L / I O P / M.</div></div>
+
+<div class="card"><h3>5 · Modes & cost</h3>
+  <div class="row"><button id="m-live" onclick="adm('mock?on=0')">LIVE (paid)</button><button id="m-mock" onclick="adm('mock?on=1')">MOCK (free)</button> <span class="mut">switches instantly, no restart</span></div>
+  <div class="row"><label><input type="checkbox" id="eco"> Economy (2 branches/round)</label></div>
+  <div class="row"><label><input type="checkbox" id="aud"> Sound inside clips</label></div>
+  <div class="row"><label><input type="checkbox" id="voi"> Auto-generate voice lines</label></div>
+  <div class="row">cap $ <input id="cap" type="number" min="0" step="1" style="width:64px"> <button onclick="adm('cap?usd='+$('cap').value)">Set</button></div>
+  <div id="kinds"></div><div class="mut" id="proj"></div><div class="mut" id="vprov"></div></div>
+
+<div class="card"><h3>6 · Performance</h3><div id="perf"></div>
+  <h3 style="margin-top:10px">Paid calls</h3><table><thead><tr><th>#</th><th>kind</th><th>label</th><th>USD</th><th>status</th></tr></thead><tbody id="items"></tbody></table></div>
+
+<div class="card" style="grid-column:1/-1"><h3>Server log</h3><pre id="logs"></pre></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);let PIN=localStorage.adminPin||'',D=null,holdT=null;
+const q=s=>s+(PIN?(s.includes('?')?'&':'?')+'pin='+encodeURIComponent(PIN):'');
+const adm=c=>fetch(q('/admin/'+c)).then(r=>r.json()).catch(()=>({}));
+function setPin(){PIN=$('pinv').value;localStorage.adminPin=PIN;$('pin').style.display='none';connect()}
+function connect(){const es=new EventSource(q('/debug-events'));es.onmessage=e=>{D=JSON.parse(e.data);draw()};es.onerror=()=>{if(!D){es.close();$('pin').style.display='flex'}}}
+const tz=()=>D&&D.taunts?D.taunts[Math.floor(Math.random()*D.taunts.length)]:'t1';
+function hold(t){adm(`push?team=${t}&n=3`);clearInterval(holdT);holdT=setInterval(()=>adm(`push?team=${t}&n=3`),120);}
+addEventListener('mouseup',()=>clearInterval(holdT));
+function quick(){adm(`match?a=${$('qa').value}&b=${$('qb').value}`)}
+function rnd(){const r=D.rosterList,a=r[Math.floor(Math.random()*r.length)];let b;do{b=r[Math.floor(Math.random()*r.length)]}while(b===a);$('qa').value=a.id;$('qb').value=b.id}
+function speak(){const t=$('stxt').value.trim();if(!t)return;if(confirm('Generate and play this line (~$0.03)?'))adm(`speak?voice=${$('sv').value}&text=${encodeURIComponent(t)}`)}
+$('force').querySelectorAll('button').forEach(b=>b.onclick=()=>adm('force?win='+b.dataset.w));
+$('eco').onchange=e=>adm('economy?on='+(e.target.checked?1:0));$('aud').onchange=e=>adm('audio?on='+(e.target.checked?1:0));$('voi').onchange=e=>adm('voice?on='+(e.target.checked?1:0));
+let built=false;
+function draw(){
+  const pct=D.cap?Math.min(100,100*D.spent/D.cap):0;
+  $('c-phase').innerHTML=`<b>${D.phase}</b>${D.phase==='fight'?' · round '+D.beat+' · '+D.beatPhase:''}`;
+  $('c-mode').innerHTML=D.live?'<b class="ok">LIVE</b>':(D.mock?'<b class="warnc">MOCK (switched)</b>':'<b class="warnc">MOCK</b>');
+  $('c-sp').textContent='$'+D.spent.toFixed(2);$('c-cap').textContent='$'+D.cap;$('c-players').innerHTML=`<b>${D.players}</b> players · ${D.sim} sim · ${D.bots} bots`;
+  $('stop').className=D.halted?'halted':'';$('stop').textContent=D.halted?'⛔ STOPPED':'⛔ STOP ALL';$('banner').style.display=D.halted?'block':'none';
+  if(!built){built=true;const opt=D.rosterList.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');$('qa').innerHTML=opt;$('qb').innerHTML=opt;$('qb').selectedIndex=1;
+    $('host-ev').innerHTML=D.hostEvents.map(e=>`<button class="dim" onclick="adm('hostsay?event=${e}')">${e}</button>`).join('');
+    $('sv').innerHTML=['host','M1','M2','M3','F1','F2','F3'].map(v=>`<option value="${v}">${v==='host'?'Host (frog)':v}</option>`).join('');}
+  if(document.activeElement!==$('cast'))$('cast').value=D.castSecs;if(document.activeElement!==$('cap'))$('cap').value=D.cap;
+  const F=D.fighters;for(const [k,id] of [['A','fa'],['B','fb']]){const f=F[k];$(id).textContent=f.name?`${f.name} · ${f.n} fans`:'—';$(id+'-hp').style.width=f.name?100*f.hp/f.maxhp+'%':'0';$(id+'-ch').style.width=100*f.charge+'%';$(id+'-t').textContent=f.name?`HP ${f.hp}/${f.maxhp} · charge ${f.charge} · tilt ${f.tilt}`:''}
+  $('forcetxt').textContent=D.forceWin?`→ forced: ${D.forceWin==='tie'?'clash':D.forceWin==='A'?'pink wins':'cyan wins'} (once)`:'→ decided by the votes';
+  $('force').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.w===(D.forceWin||'')));
+  $('nb').textContent=D.bots;$('m-live').className=D.live?'go on':'dim';$('m-mock').className=!D.live?'warn on':'dim';
+  $('eco').checked=D.economy;$('aud').checked=D.audio;$('voi').checked=D.voice;
+  $('kinds').innerHTML='<table>'+Object.entries(D.byKind).map(([k,v])=>`<tr><td>${k}</td><td>${v.n}</td><td>$${v.usd.toFixed(3)}</td></tr>`).join('')+'</table>';
+  $('proj').textContent=`Projected per match: ~$${D.projected} (intro + ${D.branchN} clips). Voice lines are extra, ~$0.03 each the first time.`;
+  $('vprov').innerHTML=`Voices: <b class="${D.voiceProvider==='elevenlabs'?'ok':'warnc'}">${D.voiceProvider==='elevenlabs'?'ElevenLabs direct':'MachGen premade (flat)'}</b> · ${D.audioMissing.n} lines not cached`;
+  const s=D.stats;$('perf').innerHTML=`Branch latency: avg ${s.avgBranch??'–'}s · max ${s.maxBranch??'–'}s<br>Video holds: ${s.holds} · branch fallbacks: ${s.fallbacks} · tasks in flight: ${D.inflight}`;
+  $('items').innerHTML=D.items.map(i=>`<tr><td>${i.n}</td><td>${i.kind}</td><td>${i.label}</td><td class="${i.real?'':'mut'}">$${i.usd.toFixed(3)}${i.real?'':'~'}</td><td class="${i.status==='failed'?'bad':i.status==='done'?'ok':'mut'}">${i.status}</td></tr>`).join('');
+  const lg=$('logs'),end=lg.scrollTop+lg.clientHeight>=lg.scrollHeight-10;lg.textContent=D.logs.join('\n');if(end)lg.scrollTop=lg.scrollHeight;
+}
+connect();
+</script></body></html>
