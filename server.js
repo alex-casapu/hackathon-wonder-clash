@@ -317,7 +317,7 @@ const isLocal = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.s
 const isAdmin = (req, u) => isLocal(req) || (!!process.env.ADMIN_PIN && u.searchParams.get('pin') === process.env.ADMIN_PIN && !req.headers['cf-connecting-ip'] && !req.headers['x-forwarded-for']);
 const lan = () => { for (const l of Object.values(os.networkInterfaces())) for (const i of l) if (i.family === 'IPv4' && !i.internal) return i.address; return 'localhost'; };
 const publicUrl = () => (process.env.PUBLIC_URL || `http://${lan()}:${PORT}`).replace(/\/$/, '');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.mp4': 'video/mp4', '.mp3': 'audio/mpeg', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.mp4': 'video/mp4', '.mp3': 'audio/mpeg', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg' };
 const body = (req) => new Promise((res) => { let d = ''; req.on('data', (c) => { d += c; if (d.length > 1e5) req.destroy(); }); req.on('end', () => { try { res(JSON.parse(d || '{}')); } catch { res({}); } }); });
 const json = (res, o, c = 200) => { res.writeHead(c, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
 function serve(req, res, file) {
@@ -410,6 +410,7 @@ http.createServer(async (req, res) => {
   if (p === '/demo') return serve(req, res, path.join(ROOT, 'public/demo.html'));
   if (p === '/control') return serve(req, res, path.join(ROOT, 'public/control.html'));
   if (p === '/debug-panel.js') return serve(req, res, path.join(ROOT, 'public/debug-panel.js'));
+  if (p.startsWith('/assets/')) return serve(req, res, path.join(ROOT, 'public/assets', ...p.slice(8).split('/').filter((s) => s && s !== '..')));
   if (p === '/host.png') return serve(req, res, path.join(ROOT, 'public/host.png'));
   res.writeHead(404); res.end('not found');
 }).listen(PORT, () => {
