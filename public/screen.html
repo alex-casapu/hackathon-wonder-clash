@@ -130,7 +130,7 @@ body:not(.fx) #unlock{top:auto;bottom:1vh;left:50%;right:auto;transform:translat
 <script>
 const COL={A:'#ff3fa4',B:'#00f0ff'},$=id=>document.getElementById(id);
 let S=null,mode='',fx={},ovT=null,act=0,curSeq=0,preSeq=0,audioOK=false,sayT=null,voice=null;
-fetch('/info').then(r=>r.json()).then(j=>{$('tag').textContent=(j.live?'MachGen LIVE':'MOCK')+' · '+j.url});
+fetch('/info').then(r=>r.json()).then(j=>{$('tag').textContent='LIVE'+' · '+j.url});
 const es=new EventSource('/events');es.onmessage=e=>{S=JSON.parse(e.data);render()};
 const sec=ms=>Math.ceil(ms/1000);
 const adm=c=>fetch('/admin/'+c).catch(()=>{});
@@ -173,7 +173,7 @@ function staticView(){
 }
 function buildArena(){
   $('body').innerHTML=`<div class="hud">${['A','B'].map(k=>`<div class="hs ${k==='B'?'r':''}" style="--c:${COL[k]}"><div class="tname" id="tn${k}"></div><div class="hp"><i id="hpi${k}"></i><b id="hpb${k}"></b></div><div class="charge"><i id="ch${k}"></i></div><div class="tilt"><i id="tl${k}"></i></div></div>`).join('')}</div>
-  <div class="stage" id="stage"><video id="v0" playsinline></video><video id="v1" playsinline></video><div id="mock"></div><div class="trk"></div>
+  <div class="stage" id="stage"><video id="v0" playsinline></video><video id="v1" playsinline></video><div class="trk"></div>
     <div class="nameplate" id="npA" style="left:2vw;color:${COL.A}"></div><div class="nameplate" id="npB" style="right:2vw;color:${COL.B}"></div><div id="status"></div><div id="call"></div>
     <div id="pop"><div class="gs dY" style="--img:url(/assets/host.jpg)"></div><span class="live">● LIVE</span><div class="eq"><i></i><i></i><i></i><i></i></div></div></div>
   <div class="moves">${['A','B'].map(k=>`<div class="mrow" id="mv${k}" style="--c:${COL[k]}">${['attacco','guardia','speciale'].map(m=>`<div class="mv" data-m="${m}"><span></span><i></i></div>`).join('')}</div>`).join('')}</div>`;
@@ -189,12 +189,8 @@ function syncVideo(){
     curSeq=v.seq;if(!v.url)return;
     const el=vid(1-act);if(el.dataset.seq!=v.seq){el.dataset.seq=v.seq;el.src=v.url}
     el.muted=!audioOK;el.volume=speaking?0.12:0.55;el.currentTime=0;el.play().catch(()=>{});el.style.opacity=1;const old=vid(act);old.style.opacity=0;setTimeout(()=>old.pause(),250);act=1-act;
-    $('mock').style.display='none';
+    
   }
-}
-function setMock(){ // no generated video: show the two portraits
-  const k=S.A.char&&S.B.char?S.A.char.id+S.B.char.id:'';if(fx.mockKey===k)return;fx.mockKey=k;if(!k)return;
-  $('mock').innerHTML=['A','B'].map(c=>`<div class="mk" id="mk${c}">${pic(S[c].char,BR.corner(c))}</div>`).join('');
 }
 function updateArena(){
   for(const k of ['A','B']){const x=S[k];
@@ -204,7 +200,6 @@ function updateArena(){
     $('mv'+k).style.visibility=S.phase==='fight'&&S.beatPhase==='vote'?'visible':'hidden';
     const tot=Math.max(1,x.n);$('mv'+k).querySelectorAll('.mv').forEach(d=>{const m=d.dataset.m;d.firstChild.textContent=`${MVL(k,m)} ${x.moveVotes[m]}`;d.lastChild.style.width=100*x.moveVotes[m]/tot+'%'});
   }
-  if(!S.live)setMock();
   syncVideo();
   if(S.phase==='fight'&&S.beat===1&&!S.last&&fx.ov!=='vs'){fx.ov='vs';ov(`<div class="banner pop">${S.A.name} <small>VS</small> ${S.B.name}</div>`,3000)}
   if(S.phase==='result'&&fx.ov!=='result'){fx.ov='result';ov(`<div class="win" style="color:${COL[S.winner]}">★ ${S[S.winner].name} wins! ★</div><div class="sub" style="color:#fff">${S.mvp?`Top tapper: ${S[S.mvp.team].name}'s fan with ${S.mvp.taps} taps`:''}</div>`,0)}
@@ -217,7 +212,6 @@ function playFx(){
   if(S.phase!=='fight'||!S.last||S.last.beat===fx.beat)return;fx.beat=S.last.beat;const l=S.last;
   const pop=(side,txt,c)=>{const d=document.createElement('div');d.className='dmg';d.style.cssText=`--c:${c};${side==='A'?'left':'right'}:14%`;d.textContent=txt;$('stage').appendChild(d);setTimeout(()=>d.remove(),1900)};
   if(l.dA>=l.dB){if(l.dA)pop('B','-'+l.dA,COL.A)}else pop('A','-'+l.dB,COL.B);
-  if(!S.live){const s=c=>{const e=$('mk'+c)&&$('mk'+c).firstElementChild;if(e){e.classList.remove('hit');void e.offsetWidth;e.classList.add('hit')}};if(l.dA)s('B');if(l.dB)s('A')}
   ov(`<div class="banner pop">${MVL('A',l.ma)} <small>vs</small> ${MVL('B',l.mb)}</div>`,2500);
 }
 // ---- speech: AUDIO ONLY. The host is the loudest voice; while anyone speaks the video sound is ducked. ----

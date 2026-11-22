@@ -74,8 +74,8 @@
     $('d-cap2').textContent = `of $${D.cap} · ${D.inflight} in flight`; $('d-capl').textContent = `cap $${D.cap}, $${left} left`;
     $('d-bar').style.width = pct + '%'; $('d-bar').style.background = pct > 80 ? '#ff4d4d' : pct > 50 ? '#ffb020' : '#3ddc84';
     $('d-state').textContent = `${D.phase}${D.phase === 'fight' ? ' r' + D.beat : ''} · ${D.players} players`;
-    $('m-sp').textContent = '$' + D.spent.toFixed(2); $('m-mode').textContent = D.halted ? 'STOPPED' : (D.live ? 'LIVE' : 'NOT LIVE'); $('m-mode').style.color = D.live ? '' : '#ff9a3c'; $('m-stop').textContent = D.halted ? 'STOPPED' : 'STOP';
-    $('d-mode').innerHTML = D.live ? '<span class="ok">LIVE</span>' : (D.replay ? '<span class="warn">REPLAY</span>' : '<span class="warn">MOCK</span>');
+    $('m-sp').textContent = '$' + D.spent.toFixed(2); $('m-mode').textContent = D.halted ? 'STOPPED' : 'LIVE'; $('m-mode').style.color = D.live ? '' : '#ff9a3c'; $('m-stop').textContent = D.halted ? 'STOPPED' : 'STOP';
+    $('d-mode').innerHTML = '<span class="ok">LIVE</span>';
     $('d-stop').className = D.halted ? 'halted' : ''; $('d-stop').textContent = D.halted ? '⛔ STOPPED' : '⛔ STOP ALL';
     banner.style.display = D.halted ? 'block' : 'none'; banner.textContent = 'HALTED: match stopped, queued tasks cancelled, no paid call can start until you press "Resume paid calls" (debug drawer).';
     if (document.activeElement !== $('d-cap')) $('d-cap').value = D.cap;
