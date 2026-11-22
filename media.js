@@ -95,14 +95,79 @@ export const resume = () => { L.halted = false; log('[resume] paid calls allowed
 // The video look avoids photographic words ("85mm", "shallow depth of field") that make the model drift into slow cinematic motion.
 export const styleLine = () => `${style().videoLook || style().look}; ${style().arena}`;
 const PACE = 'FAST-PACED real-time action at full speed, NOT slow motion, quick explosive movement, rapid camera moves (whip pan, fast push-in, low-angle tracking), both fighters always stay in frame.';
-const WORLD = [ // the street itself takes part in the fight; one per round so every clip is different
+const shuffle = (arr) => { const x = [...arr]; for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
+const bag = (arr) => { let q = []; return () => { if (!q.length) q = shuffle(arr); return q.pop(); }; }; // draws without repeating until the pool is used up
+const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const WORLD = [ // the street itself takes part in the fight
   'a parked car is launched into the air and explodes in a fireball',
   'a giant neon sign rips loose, crashes down and bursts into a shower of sparks',
   'a shockwave cracks the asphalt and blows the rain sideways in a huge ring',
-  'a shop window explodes as someone is thrown straight through it',
+  'a shop window explodes and glass hangs in the air for an instant',
   'a steam pipe bursts and engulfs the street in white steam lit by neon',
   'gravity flickers: debris floats for a moment, then everything slams back down',
+  'a transformer on a pole blows up and rains blue sparks over the fighters',
+  'a delivery truck skids sideways and smashes through a row of market stalls',
+  'the road splits open and a jet of steam and light shoots out of the crack',
+  'a bus shelter folds in half and a hundred umbrellas whirl up into the storm',
+  'a fire hydrant shoots a column of water that turns to neon mist',
+  'an overhead billboard flickers, glitches and falls apart in pixels',
 ];
+const CAMERAS = [
+  'a fast whip-pan follows the action', 'a low-angle tracking shot races alongside the fighters', 'a dramatic crash-zoom into the impact, then pulling back wide',
+  'an overhead drone dive that swoops down into the fight', 'a handheld camera that shakes with every impact and always keeps both fighters in frame',
+  'a sweeping orbit around the two fighters', 'a ground-level shot where debris flies past the lens',
+];
+const OPENERS = [
+  'both fighters trade a burst of fast blows and shoves', 'they circle for a heartbeat, then one fighter explodes into motion',
+  'the fighters clash and break apart, sliding back across the wet asphalt', 'one fighter feints and the other reads it, both reset in a blur',
+  'a rapid exchange of strikes that neither can finish', 'one fighter backs away, baiting the other into a charge',
+];
+const ENDINGS = [ // the winner
+  'stands tall and roars as the crowd erupts', 'flexes at the camera and wipes the rain from their face', 'points at the defeated opponent with a smirk as sparks rain down',
+  'stands in the smoke and slowly cracks their neck', 'raises both arms to the cheering crowd', 'kicks a piece of debris away and stares down the camera',
+];
+const LOSERS = [ // the loser
+  'is blasted backwards through a neon sign and slides to a stop', 'crashes into a bus shelter and shatters it', 'slams into the crowd barrier and drops to one knee',
+  'flips over a car and crashes onto the asphalt', 'is thrown through a shop window in an explosion of glass', 'skids across the wet street and spins to a stop, still conscious',
+  'is launched into a stack of crates that bursts apart',
+];
+const KO = [ // the final knockout
+  'is blasted through the wall of a building and the whole facade collapses', 'is slammed into the asphalt, creating a crater, and lies still',
+  'is thrown into the air and crashes through a giant neon billboard', 'is lifted off the ground by the explosion and slumps against a wrecked car',
+];
+// Set pieces: how the exchange is choreographed. `c` is the clause that says WHICH move lands (special, normal attack or counter).
+const PIECES = [
+  (W, L, c) => `${W.name} chases ${L.name} down the neon street at full sprint, vaults a parked car and finishes the exchange. ${c}`,
+  (W, L, c) => `${W.name} launches off a parked van high into the air and comes down like a meteor on ${L.name}. ${c}`,
+  (W, L, c) => `${W.name} rips a street lamp out of the ground and swings it; ${L.name} ducks, and ${W.name} follows through. ${c}`,
+  (W, L, c) => `both fighters unleash everything and their attacks collide in the middle of the street in a blinding flash; ${W.name}'s attack overpowers ${L.name}'s. ${c}`,
+  (W, L, c) => `${L.name} charges, ${W.name} slips aside at the last instant and strikes back. ${c}`,
+  (W, L, c) => `the fight goes airborne: they leap between the buildings trading blows until ${W.name} breaks through. ${c}`,
+  (W, L, c) => `${W.name} runs along a wall, flips off it and attacks from the side. ${c}`,
+  (W, L, c) => `${W.name} grabs ${L.name} by surprise, spins and hurls them through the air. ${c}`,
+  (W, L, c) => `${W.name} drops out of the rain from above, ambushing ${L.name}. ${c}`,
+  (W, L, c) => `${W.name} bursts forward through a curtain of steam and the two collide. ${c}`,
+];
+const INTROS = [
+  'both fighters stride out of opposite sides of the steam-filled street toward the center', 'a spotlight cuts through the rain and reveals both fighters standing face to face',
+  'lightning flashes and both fighters drop down from the rooftops into the street', 'the crowd roars as both fighters rise slowly into a fighting stance and lock eyes',
+  'they circle each other slowly, one flicks a taunt and the other answers with a grin',
+];
+const ARC = [ // the story of the match: every round has its own role
+  'Round 1: the opening exchange, the two fighters test each other, tense and fast, first real contact.',
+  'Round 2: escalation, both fighters go harder and the fight spills across the whole street.',
+  'Round 3: chaos, the street itself becomes part of the fight.',
+  'Round 4: desperation, whoever is behind fights wilder and dirtier.',
+  'Round 5: the climax, everything is at stake, bigger, faster, more extreme.',
+];
+// One deck per match: every round draws its own set piece, camera, street event, ending... without repeats.
+export function newDeck() {
+  const piece = bag(PIECES.map((_, i) => i)), world = bag(WORLD), camera = bag(CAMERAS), opener = bag(OPENERS), ending = bag(ENDINGS), loser = bag(LOSERS), ko = bag(KO);
+  return { plan: (beat) => ({ beat, piece: piece(), world: world(), camera: camera(), opener: opener(), ending: ending(), loser: loser(), ko: ko() }) };
+}
+// Which move the clip shows (the audience's vote only decides the winner): mostly specials, but also plain attacks and counters.
+export const rollKind = (finale) => (finale ? 'special' : pickOne(['special', 'special', 'attack', 'attack', 'counter']));
+const movePhrase = (W, kind) => (kind === 'special' ? `${W.name} unleashes the signature move "${W.special}": ${W.spectacle}.` : kind === 'attack' ? `${W.name} lands ${pickOne(W.attacks)}.` : `${W.name} ${pickOne(W.counters)}.`);
 const soundLine = () => (L.audio ? ` Sound: ${style().sound}.` : '');
 
 // ---------- roster portraits (generated once per style, kept on disk forever) ----------
@@ -134,7 +199,7 @@ export async function introClip(a, b) {
     const [ra, rb] = await Promise.all([imgRef(a), imgRef(b)]);
     const { id, rec } = await submitVideo({
       model: VID_MODEL, task_type: 'R2V',
-      prompt: `Reference image 1 is the LEFT fighter: ${a.name}. Reference image 2 is the RIGHT fighter: ${b.name}. Both stand in the same rain-soaked neon street for the face-off. Dramatic entrance at full speed, NOT slow motion: lightning flashes, steam bursts from the grates, the crowd roars, both fighters stride fast toward each other, flex, glare and throw a quick taunt, with a fast push-in camera. Wide shot, both fully visible, each keeps their exact look. ${styleLine()}.${soundLine()}`,
+      prompt: `Reference image 1 is the LEFT fighter: ${a.name}. Reference image 2 is the RIGHT fighter: ${b.name}. Both are in the same rain-soaked neon street for the face-off. Dramatic entrance at full speed, NOT slow motion: ${pickOne(INTROS)}; ${pickOne(CAMERAS)}. They flex, glare and throw a quick taunt. Both fighters stay fully visible, each keeps their exact look. ${styleLine()}.${soundLine()}`,
       src_image_urls: [ra, rb], subject_to_image_ids: { left: [0], right: [1] },
       reference_order: [{ type: 'image', index: 0 }, { type: 'image', index: 1 }],
       video_config: { duration_secs: INTRO_SECS, height: 480, aspect_ratio: '16:9', audio: L.audio },
@@ -153,30 +218,33 @@ async function lastFrameRef(clip) {
   return upload(png);
 }
 // Timeline prompts: the 13s are split into three fast stages so the model cannot stretch one punch over the whole clip.
-export function outcomeText(cls, a, b, finale, beat = 0) {
-  const L_ = `${a.name} (left)`, R_ = `${b.name} (right)`, world = WORLD[beat % WORLD.length];
-  const hit = (W, Lz) => `0-3s: ${W.name} charges in with a lightning-fast sprint and a spinning leap. 3-8s: signature move "${W.special}": ${W.spectacle}. Meanwhile ${world}. 8-13s: ${Lz.name} is blasted backwards through the air, crashes through debris and slides to a stop, while ${W.name} lands in a power pose and the crowd explodes.`;
+// `plan` (from the deck) and `kind` make every clip tell a different story; the same plan is used for every possible outcome of a round.
+export function outcomeText(cls, a, b, finale, beat = 0, plan = null, kind = 'special') {
+  plan = plan || newDeck().plan(beat);
+  const arc = ARC[Math.min(beat, ARC.length - 1)];
   if (finale) {
     const W = cls === 'A' ? a : b, Lz = cls === 'A' ? b : a;
-    return `FINAL KNOCKOUT. 0-3s: ${W.name} unleashes everything in a furious sprint. 3-8s: the ultimate "${W.special}": ${W.spectacle}, bigger than ever, the whole street erupts in a huge explosion with a blinding white flash. 8-13s: ${Lz.name} lies defeated on the ground in the smoking wreckage while ${W.name} stands over them roaring in victory.`;
+    return `FINAL KNOCKOUT. 0-3s: ${W.name} unleashes everything in a furious sprint while ${plan.camera}. 3-8s: the ultimate "${W.special}": ${W.spectacle}, bigger than ever, the whole street erupts in a huge explosion with a blinding white flash. 8-13s: ${Lz.name} ${plan.ko}, then lies defeated in the smoking wreckage while ${W.name} ${plan.ending}.`;
   }
-  if (cls === 'A') return hit(a, b);
-  if (cls === 'B') return hit(b, a);
-  return `Both fighters collide. 0-3s: ${L_} and ${R_} sprint at each other and leap. 3-8s: they clash mid-air in a gigantic shockwave, blasting a ring through the rain, and each unleashes a flurry of fast blows, with ${world}. 8-13s: both skid backwards on the asphalt, still standing, breathing hard, as sparks and debris rain down.`;
+  if (cls === 'A' || cls === 'B') {
+    const W = cls === 'A' ? a : b, Lz = cls === 'A' ? b : a;
+    return `${arc} Camera: ${plan.camera}. 0-3s: ${plan.opener}. 3-8s: ${PIECES[plan.piece](W, Lz, movePhrase(W, kind))} Meanwhile ${plan.world}. 8-13s: ${Lz.name} ${plan.loser}, while ${W.name} ${plan.ending}.`;
+  }
+  return `${arc} Camera: ${plan.camera}. 0-3s: ${plan.opener}. 3-8s: ${a.name} and ${b.name} collide head-on and clash in a gigantic shockwave that blasts a ring through the rain, each landing a flurry of fast blows, and ${plan.world}. 8-13s: both skid backwards on the asphalt, still standing, breathing hard, as sparks and debris rain down.`;
 }
-// One I2V per outcome class from the clip's last frame. Returns {A:Promise,B:Promise,tie:Promise}; each resolves to
-// {url,file} or null (never rejects). Task records are kept in ._recs so unchosen branches can be cancelled.
-export const branchPrompt = (cls, a, b, finale, beat) => `${PACE} Left: ${a.look}. Right: ${b.look}. ${outcomeText(cls, a, b, finale, beat)} Same two characters, same street. ${styleLine()}.${soundLine()}`;
-export function branchClips(clip, classes, a, b, finale = false, beat = 0) {
+export const branchPrompt = (cls, a, b, finale, beat, plan, kind) => `${PACE} Left: ${a.look}. Right: ${b.look}. ${outcomeText(cls, a, b, finale, beat, plan, kind)} Same two characters, same street. ${styleLine()}.${soundLine()}`;
+export function branchClips(clip, classes, a, b, finale = false, beat = 0, plan = null) {
   const ref = lastFrameRef(clip); ref.catch(() => {});
   const out = {}; Object.defineProperty(out, '_recs', { value: {}, enumerable: false });
+  const kinds = {}; Object.defineProperty(out, '_meta', { value: kinds, enumerable: false });
+  for (const cls of classes) kinds[cls] = { kind: rollKind(finale) };
   for (const cls of classes) {
     out[cls] = (async () => {
       const t0 = Date.now();
       try {
         const { id, rec } = await submitVideo({
           model: VID_MODEL, task_type: 'I2V',
-          prompt: branchPrompt(cls, a, b, finale, beat),
+          prompt: branchPrompt(cls, a, b, finale, beat, plan, kinds[cls].kind),
           src_image_urls: [await ref],
           video_config: { duration_secs: CLIP_SECS, height: 480, aspect_ratio: '16:9', audio: L.audio },
         }, 'branch', EST.videoPerSec * CLIP_SECS, `${finale ? 'finale ' : ''}${cls}`);

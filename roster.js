@@ -32,7 +32,7 @@ export const ROSTER = [
     tagline: 'Hit him and watch the shape change.',
     bio: 'A fighter whose skin is liquid mercury. Every punch rings back like a mirror. Nobody has ever landed the same hit twice.',
     look: 'a tall muscular man whose entire skin is liquid mercury chrome, mirror-polished with rippling reflections, shaved head, gold teeth, wearing an asymmetric black techwear tank top and tactical trousers',
-    special: 'Mercury Hook', stats: { hp: 110, atk: 1.15, spec: 1.05 },
+    special: 'Mercury Hook', attacks: ["a liquid-metal jab whose fist stretches across the whole street and slams into the target", "a spinning whip of mercury that cracks like thunder", "a hammer fist that splashes into a hundred chrome spikes"], counters: ["lets the blow sink into his chrome skin and fires it back as a reflected shockwave", "turns his body into a mirror that bounces the attack straight back"], stats: { hp: 110, atk: 1.15, spec: 1.05 },
     lines: { entrance: '[low menacing laugh] Hit me. Go ahead. [whispers] See what happens.', reply: '[growling, angry] Careful, little man. I... REFLECT.', win: '[triumphant roar] That is the SHAPE of things to come!' },
   },
   {
@@ -40,7 +40,7 @@ export const ROSTER = [
     tagline: 'Nobody knows what he looks like.',
     bio: 'A tall figure with a perfectly smooth black mirror where a face should be. He moves in glitches and speaks only in error messages.',
     look: 'a lean tall figure in a long matte-black techwear trench coat with a perfectly smooth glossy black mirror-like featureless face reflecting neon lights, razor shards of black glass floating around his hands',
-    special: 'Glitch Step', stats: { hp: 100, atk: 1.0, spec: 1.3 },
+    special: 'Glitch Step', attacks: ["vanishes in a glitch and reappears behind the target with a razor-glass slash", "hurls a storm of floating black glass shards", "drives a punch through a glitching portal that opens right inside the target's guard"], counters: ["glitches out of the way so the blow passes through him, then answers with a pixelated kick", "freezes the incoming attack in a stuttering loop and shoves it back"], stats: { hp: 100, atk: 1.0, spec: 1.3 },
     lines: { entrance: '[whispering, eerie] You cannot hit what is not there... [glitchy] ...e-e-error.', reply: '[robotic, cold] Insult... not found. [glitchy] Deleting... YOU.', win: '[flat, chilling] Connection... terminated.' },
   },
   {
@@ -48,7 +48,7 @@ export const ROSTER = [
     tagline: 'Turn off the lights. He is the only glow.',
     bio: 'A pale, elegant man in an ice-white coat with enormous wings of glowing cracked glass. He is drawn to light, and he leaves nothing but dust behind.',
     look: 'a pale elegant man in a tailored ice-white coat with enormous luminous moth wings made of glowing cracked glass, large dark compound eyes, fine feathered antennae, a cold gaze, powder dust trailing in the air',
-    special: 'Lamp Burst', stats: { hp: 120, atk: 1.0, spec: 1.15 },
+    special: 'Lamp Burst', attacks: ["a dive from above on blazing glass wings that scatters glowing dust", "a spinning wing-slash that cuts the air into shards of light", "a flurry of luminous powder that burns where it lands"], counters: ["folds his wings into a shield of glowing glass that shatters the blow", "lures the target toward a lamp-bright flare and strikes out of the glare"], stats: { hp: 120, atk: 1.0, spec: 1.15 },
     lines: { entrance: '[soft, chilling whisper] Turn off the lights. [sighs] I like to be... the only glow.', reply: '[icy, furious] Moths... remember... EVERYTHING you say.', win: '[serene, cruel laugh] You flew... too close to the light.' },
   },
   {
@@ -56,7 +56,7 @@ export const ROSTER = [
     tagline: 'Kneel. Or do not. She wins either way.',
     bio: 'A radiant fighter crowned with rotating holographic rings and wings of glitching light. She cuts through anything with a halo she can throw.',
     look: 'a striking woman with sleek silver hair and a crown of rotating holographic halo rings, translucent wings of glitching white light, a glossy white latex bodysuit with chrome plating, calm piercing eyes',
-    special: 'Halo Cutter', stats: { hp: 105, atk: 1.1, spec: 1.15 },
+    special: 'Halo Cutter', attacks: ["a flying halo-ring kick that leaves a trail of light", "a throw of two spinning halo rings that curve around the target", "a glowing wing-sweep that knocks the target off its feet"], counters: ["spins the incoming blow into a ring of light and throws it back", "blinks aside in a flash of white and counters with a rising halo strike"], stats: { hp: 105, atk: 1.1, spec: 1.15 },
     lines: { entrance: '[radiant, commanding] Kneel! [laughs] Or do not. Either way... I WIN.', reply: '[outraged gasp] BLASPHEMY! [scoffs] But make it a good one.', win: '[serene, triumphant] Amen. [breathes] Next.' },
   },
   {
@@ -64,7 +64,7 @@ export const ROSTER = [
     tagline: 'Pretty things have thorns.',
     bio: 'A woman in a glossy black bodysuit with bioluminescent orchids growing from her shoulders and spine. Her pollen glows. Her bite is worse.',
     look: 'a striking woman in a glossy black bodysuit with large bioluminescent orchid blossoms growing from her shoulders and spine, glowing pollen dripping from the petals, venom-green lipstick, sleek dark hair, sharp confident gaze',
-    special: 'Spore Bloom', stats: { hp: 115, atk: 1.0, spec: 1.15 },
+    special: 'Spore Bloom', attacks: ["whipping vines of glowing orchids that lash and wrap around the target", "a burst of bioluminescent pollen that blinds and stings", "a thorn-spike kick as petals explode off her shoulders"], counters: ["lets the target grab her, then blooms spikes through the hold", "sidesteps like a dancer and drags the target into a thorny vine trap"], stats: { hp: 115, atk: 1.0, spec: 1.15 },
     lines: { entrance: '[sultry whisper] Pretty things have thorns... [laughs] and I have THOUSANDS.', reply: '[sweet, dangerous] Oh, darling. [hissing] That was your mistake.', win: '[purring, delighted] Beautiful. [giggles] Pretty. Over.' },
   },
   {
@@ -72,7 +72,7 @@ export const ROSTER = [
     tagline: 'Eight limbs. Zero mercy.',
     bio: 'A precision fighter with four chrome spider legs folded behind her back. She never needs to dodge: she is always somewhere else.',
     look: 'a fierce woman in a black leather and mesh bodysuit with four sleek chrome mechanical spider legs extending from her back, a red neon visor over her eyes, a sharp black bob haircut',
-    special: 'Eight Arms', stats: { hp: 100, atk: 1.2, spec: 1.1 },
+    special: 'Eight Arms', attacks: ["four chrome spider legs stabbing in rapid sequence", "a leaping slam where all four legs plant and crush", "a web-line grapple that yanks the target off the ground"], counters: ["catches the blow between two chrome legs and flips the target over", "leaps up out of reach and drops back with a leg-spike strike"], stats: { hp: 100, atk: 1.2, spec: 1.1 },
     lines: { entrance: '[amused, smirking] Eight limbs. [laughs] ZERO mercy.', reply: '[smirking, mocking] Cute. [laughs] Try again... with ALL your arms.', win: '[satisfied, breathless laugh] Stuck on me. [sighs] Always.' },
   },
 ];

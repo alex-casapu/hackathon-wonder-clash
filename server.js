@@ -133,13 +133,14 @@ function speak(voiceKey, who, text, prep) {
 }
 // ---- live commentary: the host's lines are composed from what is actually happening, then voiced ----
 const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
-function planReaction(r) {
+function planReaction(r, shown) {
   const a = S.teams.A, b = S.teams.B, ca = a.char, cb = b.char;
   const ha = Math.max(0, a.hp - r.dB), hb = Math.max(0, b.hp - r.dA);
   if (r.beat === BEATS) { const w = r.cls === 'A' ? ca : cb; return pickOne([`[shouting, ecstatic] IT IS OVER! [gasps] ${w.name} takes the match! WHAT a fight!`, `[shouting] AND THAT IS THE KNOCKOUT! [laughs] ${w.name} wins it ALL!`]); }
   if (r.win === 'tie') return pickOne([`[gasps] They COLLIDE in the middle! [shouting] ${ca.name} against ${cb.name}, and nobody gives an inch!`, `[excited] WOW, a perfect clash! ${ca.name} and ${cb.name} are trading blows!`]);
   const W = r.win === 'A' ? ca : cb, Lc = r.win === 'A' ? cb : ca, dmg = r.win === 'A' ? r.dA : r.dB, lhp = r.win === 'A' ? hb : ha, mv = r.win === 'A' ? r.ma : r.mb;
-  const what = mv === 'speciale' ? W.special : mv === 'attacco' ? 'a brutal strike' : 'a perfect counter';
+  const kind = shown ? shown.kind : (mv === 'speciale' ? 'special' : mv === 'attacco' ? 'attack' : 'counter'); // describe what the clip shows
+  const what = kind === 'special' ? W.special : kind === 'attack' ? pickOne(['a brutal strike', 'a crushing blow', 'a vicious combo']) : pickOne(['a perfect counter', 'a razor-sharp counter', 'a counter out of nowhere']);
   let t = pickOne([`[shouting] OH! [gasps] ${W.name} lands ${what}! ${dmg} damage! ${Lc.name} is down to ${lhp}!`, `[shouting, amazed] OH MY! ${what} from ${W.name}! [laughs] ${Lc.name} has only ${lhp} left!`, `[excited] WHAT a hit! ${W.name} uses ${what} for ${dmg}! [gasps] ${Lc.name} drops to ${lhp}!`]);
   if (lhp / (r.win === 'A' ? b.maxhp : a.maxhp) < 0.3) t += ` [worried, breathless] ${Lc.name} is in SERIOUS trouble!`;
   return t;
@@ -224,7 +225,8 @@ async function runFight() {
   let useVideo = !!S.intro, len = useVideo ? INTRO_MS : CLIP_MS, P = Date.now(); // P = start of the clip now on screen
   playClip(S.intro);
   const classes = () => (L.economy ? ['A', 'B'] : ['A', 'B', 'tie']);
-  let branches = useVideo ? media.branchClips(S.intro, classes(), A, B, false, 0) : null;
+  const deck = media.newDeck(); // random set pieces, cameras, street events and endings: every match tells a different story
+  let branches = useVideo ? media.branchClips(S.intro, classes(), A, B, false, 0, deck.plan(0)) : null;
   // the host introduces the fighters, then each says their catchphrase
   [[800, () => { sayAt = Date.now(); speak('host', 'host', announce('A', A)); }], [4200, () => { sayAt = Date.now(); speak('host', 'host', announce('B', B)); }],
     [7600, () => charSay('A', 'entrance')], [10600, () => charSay('B', 'entrance')]].forEach(([ms, fn]) => setTimeout(() => alive() && S.beat === 1 && fn(), ms));
@@ -255,10 +257,11 @@ async function runFight() {
       if (clip) { S.next = { seq: videoSeq + 1, url: clip.url }; push(); }
       media.cancelBranches(branches, r.cls); // unchosen branches: cancel if still queued (refunded)
     }
+    const shown = branches && branches._meta ? (branches._meta[r.cls] || null) : null; // which move the chosen clip actually shows
     // chain on immediately: next branches start from this clip's last frame, while it is still waiting to play
-    branches = clip && k < BEATS ? media.branchClips(clip, k + 1 === BEATS ? ['A', 'B'] : classes(), A, B, k + 1 === BEATS, k) : null;
+    branches = clip && k < BEATS ? media.branchClips(clip, k + 1 === BEATS ? ['A', 'B'] : classes(), A, B, k + 1 === BEATS, k, deck.plan(k)) : null;
     // live commentary: compose the line now and start voicing it, so the audio is ready when the clip starts
-    const plan = planReaction(r), prep = L.voice && !audio.cachedUrl('host', plan) ? audio.ensure('host', plan) : null;
+    const plan = planReaction(r, shown), prep = L.voice && !audio.cachedUrl('host', plan) ? audio.ensure('host', plan) : null;
     await sleepUntil(P + len); if (!alive()) return;
     applyBeat(r); if (k === BEATS) S.winner = r.cls;
     P = Date.now(); len = CLIP_MS;
