@@ -28,7 +28,7 @@ export const setStyle = (n) => { if (STYLES[n]) cur = n; return cur; };
 
 export const ROSTER = [
   {
-    id: 'mercury', spectacle: "his fist stretches and liquefies into a giant mercury wrecking ball that smashes through a parked car and sends it flipping through the air", gender: 'M', name: 'Mercury', icon: '🪞', voice: 'M1',
+    id: 'mercury', short: 'the chrome-skinned man', spectacle: "his fist stretches and liquefies into a giant mercury wrecking ball that smashes through a parked car and sends it flipping through the air", gender: 'M', name: 'Mercury', icon: '🪞', voice: 'M1',
     tagline: 'Hit him and watch the shape change.',
     bio: 'A fighter whose skin is liquid mercury. Every punch rings back like a mirror. Nobody has ever landed the same hit twice.',
     look: 'a tall muscular man whose entire skin is liquid mercury chrome, mirror-polished with rippling reflections, shaved head, gold teeth, wearing an asymmetric black techwear tank top and tactical trousers',
@@ -36,7 +36,7 @@ export const ROSTER = [
     lines: { entrance: '[low menacing laugh] Hit me. Go ahead. [whispers] See what happens.', reply: '[growling, angry] Careful, little man. I... REFLECT.', win: '[triumphant roar] That is the SHAPE of things to come!' },
   },
   {
-    id: 'null', spectacle: "he flickers through glitching teleports, the whole street distorts into digital artifacts, razor shards of black glass explode outward and slice a neon sign in half", gender: 'M', name: 'Null', icon: '⬛', voice: 'M2',
+    id: 'null', short: 'the man with the black mirror face', spectacle: "he flickers through glitching teleports, the whole street distorts into digital artifacts, razor shards of black glass explode outward and slice a neon sign in half", gender: 'M', name: 'Null', icon: '⬛', voice: 'M2',
     tagline: 'Nobody knows what he looks like.',
     bio: 'A tall figure with a perfectly smooth black mirror where a face should be. He moves in glitches and speaks only in error messages.',
     look: 'a lean tall figure in a long matte-black techwear trench coat with a perfectly smooth glossy black mirror-like featureless face reflecting neon lights, razor shards of black glass floating around his hands',
@@ -44,7 +44,7 @@ export const ROSTER = [
     lines: { entrance: '[whispering, eerie] You cannot hit what is not there... [glitchy] ...e-e-error.', reply: '[robotic, cold] Insult... not found. [glitchy] Deleting... YOU.', win: '[flat, chilling] Connection... terminated.' },
   },
   {
-    id: 'moth', spectacle: "his glass wings flare open in a blinding white burst, a shockwave shatters every window on the street and blows cars sideways in a storm of glowing dust", gender: 'M', name: 'Doctor Moth', icon: '🦋', voice: 'M3',
+    id: 'moth', short: 'the pale winged man in the white coat', spectacle: "his glass wings flare open in a blinding white burst, a shockwave shatters every window on the street and blows cars sideways in a storm of glowing dust", gender: 'M', name: 'Doctor Moth', icon: '🦋', voice: 'M3',
     tagline: 'Turn off the lights. He is the only glow.',
     bio: 'A pale, elegant man in an ice-white coat with enormous wings of glowing cracked glass. He is drawn to light, and he leaves nothing but dust behind.',
     look: 'a pale elegant man in a tailored ice-white coat with enormous luminous moth wings made of glowing cracked glass, large dark compound eyes, fine feathered antennae, a cold gaze, powder dust trailing in the air',
@@ -52,7 +52,7 @@ export const ROSTER = [
     lines: { entrance: '[soft, chilling whisper] Turn off the lights. [sighs] I like to be... the only glow.', reply: '[icy, furious] Moths... remember... EVERYTHING you say.', win: '[serene, cruel laugh] You flew... too close to the light.' },
   },
   {
-    id: 'seraph', spectacle: "she hurls her spinning holographic halo rings that slice through a truck and a neon billboard in a shower of sparks, then dashes through the wreckage", gender: 'F', name: 'Seraph', icon: '👼', voice: 'F1',
+    id: 'seraph', short: 'the silver-haired woman in white with the halo', spectacle: "she hurls her spinning holographic halo rings that slice through a truck and a neon billboard in a shower of sparks, then dashes through the wreckage", gender: 'F', name: 'Seraph', icon: '👼', voice: 'F1',
     tagline: 'Kneel. Or do not. She wins either way.',
     bio: 'A radiant fighter crowned with rotating holographic rings and wings of glitching light. She cuts through anything with a halo she can throw.',
     look: 'a striking woman with sleek silver hair and a crown of rotating holographic halo rings, translucent wings of glitching white light, a glossy white latex bodysuit with chrome plating, calm piercing eyes',
@@ -60,7 +60,7 @@ export const ROSTER = [
     lines: { entrance: '[radiant, commanding] Kneel! [laughs] Or do not. Either way... I WIN.', reply: '[outraged gasp] BLASPHEMY! [scoffs] But make it a good one.', win: '[serene, triumphant] Amen. [breathes] Next.' },
   },
   {
-    id: 'orchid', spectacle: "giant bioluminescent orchids erupt from the asphalt in a chain explosion of glowing spores while whipping vines wrap around her opponent", gender: 'F', name: 'Orchid', icon: '🌺', voice: 'F2',
+    id: 'orchid', short: 'the woman in black with the glowing orchids', spectacle: "giant bioluminescent orchids erupt from the asphalt in a chain explosion of glowing spores while whipping vines wrap around her opponent", gender: 'F', name: 'Orchid', icon: '🌺', voice: 'F2',
     tagline: 'Pretty things have thorns.',
     bio: 'A woman in a glossy black bodysuit with bioluminescent orchids growing from her shoulders and spine. Her pollen glows. Her bite is worse.',
     look: 'a striking woman in a glossy black bodysuit with large bioluminescent orchid blossoms growing from her shoulders and spine, glowing pollen dripping from the petals, venom-green lipstick, sleek dark hair, sharp confident gaze',
@@ -68,7 +68,7 @@ export const ROSTER = [
     lines: { entrance: '[sultry whisper] Pretty things have thorns... [laughs] and I have THOUSANDS.', reply: '[sweet, dangerous] Oh, darling. [hissing] That was your mistake.', win: '[purring, delighted] Beautiful. [giggles] Pretty. Over.' },
   },
   {
-    id: 'widow', spectacle: "she leaps up, spears her four chrome spider legs into the buildings, swings across the street and crashes down with all legs, cratering the road", gender: 'F', name: 'Widow', icon: '🕷️', voice: 'F3',
+    id: 'widow', short: 'the woman with the chrome spider legs and red visor', spectacle: "she leaps up, spears her four chrome spider legs into the buildings, swings across the street and crashes down with all legs, cratering the road", gender: 'F', name: 'Widow', icon: '🕷️', voice: 'F3',
     tagline: 'Eight limbs. Zero mercy.',
     bio: 'A precision fighter with four chrome spider legs folded behind her back. She never needs to dodge: she is always somewhere else.',
     look: 'a fierce woman in a black leather and mesh bodysuit with four sleek chrome mechanical spider legs extending from her back, a red neon visor over her eyes, a sharp black bob haircut',

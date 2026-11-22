@@ -94,7 +94,7 @@ export const resume = () => { L.halted = false; log('[resume] paid calls allowed
 // ---------- prompts ----------
 // The video look avoids photographic words ("85mm", "shallow depth of field") that make the model drift into slow cinematic motion.
 export const styleLine = () => `${style().videoLook || style().look}; ${style().arena}`;
-const PACE = 'FAST-PACED real-time action at full speed, NOT slow motion, quick explosive movement, rapid camera moves (whip pan, fast push-in, low-angle tracking), both fighters always stay in frame.';
+const PACE = 'FAST-PACED real-time action at full speed, NOT slow motion, quick explosive movement, rapid camera moves (whip pan, fast push-in, low-angle tracking). Keep the camera wide: BOTH fighters stay visible in the frame for the whole clip, no long close-ups, and nobody leaves the scene.';
 const shuffle = (arr) => { const x = [...arr]; for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
 const bag = (arr) => { let q = []; return () => { if (!q.length) q = shuffle(arr); return q.pop(); }; }; // draws without repeating until the pool is used up
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -113,9 +113,9 @@ const WORLD = [ // the street itself takes part in the fight
   'an overhead billboard flickers, glitches and falls apart in pixels',
 ];
 const CAMERAS = [
-  'a fast whip-pan follows the action', 'a low-angle tracking shot races alongside the fighters', 'a dramatic crash-zoom into the impact, then pulling back wide',
-  'an overhead drone dive that swoops down into the fight', 'a handheld camera that shakes with every impact and always keeps both fighters in frame',
-  'a sweeping orbit around the two fighters', 'a ground-level shot where debris flies past the lens',
+  'a fast whip-pan follows the action', 'a low-angle tracking shot races alongside the fighters', 'a fast push-in toward the impact that ends in a wide shot with both fighters visible',
+  'an overhead drone dive that swoops down and stays wide so both fighters remain visible', 'a handheld camera that shakes with every impact and always keeps both fighters in frame',
+  'a sweeping orbit around the two fighters', 'a ground-level wide shot where debris flies past the lens and both fighters stay visible',
 ];
 const OPENERS = [
   'both fighters trade a burst of fast blows and shoves', 'they circle for a heartbeat, then one fighter explodes into motion',
@@ -221,16 +221,17 @@ async function lastFrameRef(clip) {
 // `plan` (from the deck) and `kind` make every clip tell a different story; the same plan is used for every possible outcome of a round.
 export function outcomeText(cls, a, b, finale, beat = 0, plan = null, kind = 'special') {
   plan = plan || newDeck().plan(beat);
+  const who = `${a.name} is ${a.short}; ${b.name} is ${b.short}.`; // said once, so the video model never mixes up who is who
   const arc = ARC[Math.min(beat, ARC.length - 1)];
   if (finale) {
     const W = cls === 'A' ? a : b, Lz = cls === 'A' ? b : a;
-    return `FINAL KNOCKOUT. 0-3s: ${W.name} unleashes everything in a furious sprint while ${plan.camera}. 3-8s: the ultimate "${W.special}": ${W.spectacle}, bigger than ever, the whole street erupts in a huge explosion with a blinding white flash. 8-13s: ${Lz.name} ${plan.ko}, then lies defeated in the smoking wreckage while ${W.name} ${plan.ending}.`;
+    return `FINAL KNOCKOUT. ${who} 0-3s: ${W.name} unleashes everything in a furious sprint while ${plan.camera}. 3-8s: the ultimate "${W.special}": ${W.spectacle}, bigger than ever, the whole street erupts in a huge explosion with a blinding white flash. 8-13s: ${Lz.name} ${plan.ko}, then lies defeated in the smoking wreckage while ${W.name} ${plan.ending}.`;
   }
   if (cls === 'A' || cls === 'B') {
     const W = cls === 'A' ? a : b, Lz = cls === 'A' ? b : a;
-    return `${arc} Camera: ${plan.camera}. 0-3s: ${plan.opener}. 3-8s: ${PIECES[plan.piece](W, Lz, movePhrase(W, kind))} Meanwhile ${plan.world}. 8-13s: ${Lz.name} ${plan.loser}, while ${W.name} ${plan.ending}.`;
+    return `${arc} ${who} Camera: ${plan.camera}. 0-3s: ${plan.opener}. 3-8s: ${PIECES[plan.piece](W, Lz, movePhrase(W, kind))} Meanwhile ${plan.world}. 8-13s: ${Lz.name} ${plan.loser}, while ${W.name} ${plan.ending}; both are visible in the final frames and ${W.name} is clearly the winner.`;
   }
-  return `${arc} Camera: ${plan.camera}. 0-3s: ${plan.opener}. 3-8s: ${a.name} and ${b.name} collide head-on and clash in a gigantic shockwave that blasts a ring through the rain, each landing a flurry of fast blows, and ${plan.world}. 8-13s: both skid backwards on the asphalt, still standing, breathing hard, as sparks and debris rain down.`;
+  return `${arc} ${who} Camera: ${plan.camera}. 0-3s: ${plan.opener}. 3-8s: ${a.name} and ${b.name} collide head-on and clash in a gigantic shockwave that blasts a ring through the rain, each landing a flurry of fast blows, and ${plan.world}. 8-13s: both skid backwards on the asphalt, still standing, breathing hard, as sparks and debris rain down.`;
 }
 export const branchPrompt = (cls, a, b, finale, beat, plan, kind) => `${PACE} Left: ${a.look}. Right: ${b.look}. ${outcomeText(cls, a, b, finale, beat, plan, kind)} Same two characters, same street. ${styleLine()}.${soundLine()}`;
 export function branchClips(clip, classes, a, b, finale = false, beat = 0, plan = null) {

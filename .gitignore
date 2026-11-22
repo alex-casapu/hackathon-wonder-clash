@@ -10,3 +10,7 @@ media/*.png
 media/tries/
 media/sheets/
 media/roster/archive/
+
+# recordings of full matches (big video files)
+media/recordings/
+/*.mp4
