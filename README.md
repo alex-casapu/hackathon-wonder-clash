@@ -1,0 +1,37 @@
+# Weird Wrestling (cartella `clash/`)
+
+Il pubblico scansiona un QR, **vota il personaggio preferito tra 6** (3 uomini, 3 donne, surreali). I due più votati combattono; poi ognuno **sceglie chi spingere** e, per 90 secondi, vota mosse, tocca, insulta. Il combattimento è **un solo video continuo** con i due personaggi nella stessa scena. Tutto gira sul Mac.
+
+## Avvio
+
+```bash
+cd clash
+cp .env.example .env     # metti MACHGEN_API_KEY (senza chiave: modalità MOCK, nessun costo)
+node server.js           # --fast = fasi più corte per le prove, --mock = niente chiamate a pagamento
+```
+
+- Schermo: `http://localhost:3000/screen` (QR, casting, video, **barra debug in fondo** con costi e STOP). Tasti: `spazio` avvia/salta, `b` +20 bot, `r` reset, `x` STOP ALL, `d` apre/chiude il pannello debug, `f` fullscreen.
+- Demo con telefoni finti: `http://localhost:3000/demo?n=40&auto=1` (schermo + parete di utenti virtuali). Solo parete: `/sim?n=40`.
+- Galleria degli stili: `http://localhost:3000/styles` (si cambia stile dalla lobby, o dal pannello debug).
+- Telefoni: URL stampato all'avvio o `PUBLIC_URL` (tunnel Cloudflare, da fare alla fine).
+
+## Flusso
+
+1. **Lobby** → 2. **Casting** (25s): ogni telefono vota un personaggio → 3. i due più votati diventano gli angoli rosa (A, a sinistra) e ciano (B). Chi ha votato un finalista tifa per lui, gli altri vanno dove ci sono meno tifosi; si può cambiare lato ogni 3s → 4. **Intro** (video con entrambi) → 5. **6 round**: voto mossa (Attack / Guard / mossa speciale del personaggio), tap, insulti; il telecronista (la rana) chiede "tap storm" e "taunt wave" → 6. **Risultato**.
+
+## Video unico (clip concatenate)
+
+Intro R2V con i due ritratti, poi ogni round è un I2V che parte dall'ultimo fotogramma del precedente. Mentre una clip va in onda il server prepara le continuazioni possibili (2 in modalità Economy, 3 altrimenti: vince A / vince B / pareggio); al voto parte quella giusta. Se tarda più di 4s parte un ramo già pronto e l'esito si adegua al video. Nel finale non si scambia mai il vincitore.
+
+## Costi (misurati)
+
+Ritratto 0,004 $ · frase di voce 0,065 $ (cache su disco, una volta sola) · clip 13s circa 0,195 $. Costo previsto per partita in Economy: circa 2,6 $ (intro + 12 clip). I ritratti sono generati una volta per stile in `media/roster/<stile>/`.
+Debug in fondo allo schermo: spesa per tipo, tetto di spesa (`MAX_SPEND`, default 10 $), **STOP ALL** (annulla i task in coda, blocca ogni chiamata a pagamento finché non premi Resume), toggle Economy / audio nei clip / voci automatiche.
+
+## Personaggi e stile
+
+Sei combattenti cyber-surreali, uno stile solo (`neon-disruptor`, in `roster.js`): Mercury (pelle di mercurio), Null (volto-specchio nero), Doctor Moth (ali di vetro), Seraph (aureola olografica), Orchid (orchidee bioluminescenti), Widow (zampe di ragno cromate). Ritratti fatti con **Krea 3** (generatore creativo, circa 0,027 $ l'uno) e salvati in `media/roster/neon-disruptor/`; le versioni vecchie sono in `media/roster/archive/`. I ritratti sono 16:9: nelle schede si vede il centro.
+
+## File
+
+`server.js` (flusso, voti, motore, catena di clip, SSE, admin) · `media.js` (client MachGen) · `audio.js` (voci con cache) · `roster.js` (personaggi + stili) · `lines.js` (telecronista + insulti) · `ledger.js` (costi, tetto, STOP) · `public/` (phone, screen, sim, demo, styles, debug-panel.js).

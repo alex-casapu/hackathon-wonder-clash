@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Weird Wrestling</title>
+<style>
+:root{--bg:#0a0612;--fg:#f6f3ff;--mut:#9a8fba;--card:#171028;--A:#ff3d81;--B:#19d3ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:-apple-system,system-ui,sans-serif;overflow:hidden;touch-action:manipulation}
+#app{height:100%;display:flex;flex-direction:column;padding:14px;gap:10px;overflow:auto}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.chip{padding:6px 12px;border-radius:99px;background:var(--tc,#555);color:#0a0612;font-size:14px;font-weight:800}
+.timer{font-variant-numeric:tabular-nums;color:var(--mut)}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px}
+h1{font-size:28px;margin:0}h2{font-size:19px;margin:0 0 4px}p{margin:0;color:var(--mut)}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:var(--card);border-radius:16px;padding:8px;border:3px solid transparent;text-align:center;position:relative}
+.card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:#0006}
+.card .ic{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:60px;background:#0006;border-radius:10px}
+.card b{display:block;font-size:14px;margin-top:5px}.card small{display:block;font-size:10.5px;color:var(--mut);line-height:1.2;margin-top:2px}
+.card.sel{border-color:#ffd23f;box-shadow:0 0 14px #ffd23f88}.card.sel::after{content:'✔ YOUR PICK';position:absolute;top:10px;left:10px;background:#ffd23f;color:#1a0d00;font-size:10px;font-weight:900;padding:2px 7px;border-radius:99px}
+.side{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.side .card.mine{border-color:var(--c);box-shadow:0 0 14px var(--c)}.side .card.mine::after{content:'YOU PUSH THIS ONE';position:absolute;top:10px;left:10px;background:var(--c);color:#0a0612;font-size:9.5px;font-weight:900;padding:2px 7px;border-radius:99px}
+button{font:inherit;color:var(--fg);border:0;border-radius:14px;background:#251a3d;padding:12px 4px;font-size:15px;font-weight:700}
+button small{display:block;font-size:10px;color:var(--mut);font-weight:600;margin-top:2px}
+button.sel{background:var(--tc);color:#0a0612;box-shadow:0 0 0 3px #fff6 inset}button.sel small{color:#0a0612aa}
+button:disabled{opacity:.4}
+.moves{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.moves button{padding:12px 4px}
+.taunts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.taunts button{font-size:11px;padding:8px 3px;background:#3a1633}
+.taunts.cd button{opacity:.35}
+#tap{flex:1;min-height:90px;border-radius:26px;background:radial-gradient(circle at 50% 40%,var(--tc),#0000 150%),#1b1230;font-size:34px;font-weight:900;letter-spacing:1px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;transition:transform .05s;color:#fff}
+#tap:active{transform:scale(.96)}
+.bar{height:9px;border-radius:9px;background:#251a3d;overflow:hidden}.bar i{display:block;height:100%;background:var(--tc);transition:width .3s}
+.hp{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;color:var(--mut)}
+.big{font-size:70px}
+.back{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:14px;padding:6px 8px;border:2px solid var(--tc)}
+.back img{width:38px;height:38px;border-radius:9px;object-fit:cover}.back span{flex:1;font-size:13px;font-weight:800}.back button{padding:7px 10px;font-size:12px}
+.call{background:linear-gradient(90deg,#ffd23f,#ff7a18);color:#1a0d00;border-radius:14px;padding:10px;text-align:center;font-weight:900;font-size:16px;animation:pulse .6s infinite alternate}
+@keyframes pulse{to{transform:scale(1.03)}}
+.say{background:#171028;border-radius:14px;padding:8px 10px;font-size:13px;display:flex;gap:8px;align-items:center}.say img{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #ffb300}
+</style></head><body><div id="app"></div>
+<script>
+const $=document.getElementById('app');let me=null,S=null,pending=0,sig='',offer=[],tcdUntil=0,tcdTimer=null;
+const post=(p,b)=>fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:me,...b})}).then(r=>r.json()).catch(()=>({}));
+async function join(){const r=await post('/api/join',{id:localStorage.pid});me=r.id;localStorage.pid=me;connect()}
+function connect(){const es=new EventSource('/events?pid='+me);es.onmessage=e=>{S=JSON.parse(e.data);if(!S.you){join();return}render()};}
+const COL={A:'var(--A)',B:'var(--B)'},sec=ms=>Math.ceil(ms/1000);
+const pic=c=>c.img?`<img src="${c.img}">`:`<div class="ic">${c.icon}</div>`;
+function newOffer(){offer=[...S.taunts].sort(()=>Math.random()-.5).slice(0,3)}
+function top(){const y=S.you;return `<div class="top"><span class="chip" style="--tc:${y.team?COL[y.team]:'#777'}">${y.team?'Team '+S[y.team].corner:'Weird Wrestling'}</span><span class="timer">${S.rem?sec(S.rem)+'s':''}</span></div>`}
+function sideCards(y){return `<div class="side">${['A','B'].map(k=>{const x=S[k];return `<div class="card ${y.team===k?'mine':''}" style="--c:${COL[k]}" onclick="side('${k}')">${x.char?pic(x.char):''}<b>${x.name}</b><small>${x.n} fans</small></div>`}).join('')}</div>`}
+function render(){
+  if(!S||!S.you)return;const y=S.you,t=y.team?S[y.team]:null,o=y.team?S[y.team==='A'?'B':'A']:null;
+  document.documentElement.style.setProperty('--tc',y.team?COL[y.team]:'#7b3bff');
+  const cd=Date.now()<tcdUntil,callOn=S.call&&y.team&&(S.call.team==='both'||S.call.team===y.team);
+  const key=[S.phase,S.beat,S.beatPhase,y.vote,y.team,y.move,callOn?S.call.seq:0,cd].join('|');
+  if(S.phase==='fight'&&sig===key){updateFight();return}
+  let h=top();
+  if(S.phase==='lobby')h+=`<div class="center"><div class="big">🎪</div><h1>Welcome to the weirdest wrestling show</h1><p>${S.players} people are in · waiting for the start</p></div>`;
+  else if(S.phase==='casting'){h+=`<h2>Who should fight? Vote for your favorite!</h2><div class="cards">${S.roster.map(c=>`<div class="card ${y.vote===c.id?'sel':''}" onclick="vote('${c.id}')">${pic(c)}<b>${c.name}</b><small>${c.tagline}</small></div>`).join('')}</div><p style="text-align:center">The two most voted characters will fight.</p>`}
+  else if(S.phase==='generating'){h+=`<h2>The fighters are ready! Pick who you push for</h2>${sideCards(y)}<p style="text-align:center">You can switch sides any time (every 3 seconds).</p>`}
+  else if(S.phase==='fight'){
+    h+=`<div class="back" style="--tc:${COL[y.team]}">${t.char?`<img src="${t.char.img||''}">`:''}<span>You push: ${t.name}</span><button onclick="side('${y.team==='A'?'B':'A'}')">Switch</button></div>`;
+    h+=`<div class="hp"><div>${t.name} ${t.hp}/${t.maxhp}<div class="bar"><i style="width:${100*t.hp/t.maxhp}%"></i></div></div><div>${o.name} ${o.hp}/${o.maxhp}<div class="bar"><i style="width:${100*o.hp/o.maxhp}%;background:#888"></i></div></div></div>`;
+    if(callOn)h+=`<div class="call">${S.call.text}</div>`;
+    h+=`<p style="text-align:center">Round ${S.beat}/${S.beats} · ${S.beatPhase==='vote'?'pick a move and TAP!':'watch the screen'}</p>`;
+    const MV=[['attacco','⚔️','Attack'],['guardia','🛡️','Guard'],['speciale','✨',t.special]];
+    h+=`<div class="moves">${MV.map(([m,i,l])=>`<button class="${y.move===m?'sel':''}" ${S.beatPhase!=='vote'?'disabled':''} onclick="move('${m}')">${i}<br>${l}</button>`).join('')}</div>`;
+    if(!offer.length)newOffer();
+    h+=`<div class="taunts ${cd?'cd':''}">${offer.map(x=>`<button ${cd?'disabled':''} onclick="taunt('${x.id}')">😈 ${x.short}</button>`).join('')}</div>`;
+    h+=`<div class="bar"><i style="width:${100*t.charge}%"></i></div><div id="tap" ontouchstart="tap(event)" onmousedown="tap(event)">TAP!<small style="font-size:14px;opacity:.7">${y.taps} taps</small></div>`;
+  }
+  else if(S.phase==='result'){const w=S.winner===y.team;h+=`<div class="center"><div class="big">${w?'🏆':'💀'}</div><h1>${w?'VICTORY!':'Defeat'}</h1><p>${S[S.winner].name} wins the match.${S.mvp&&S.mvp.team===y.team&&y.taps===S.mvp.taps?' You are the top tapper on your team!':''} You tapped ${y.taps} times.</p></div>`}
+  sig=key;$.innerHTML=h;
+}
+function updateFight(){const y=S.you,t=S[y.team],o=S[y.team==='A'?'B':'A'],b=document.querySelectorAll('.bar i');if(b.length>=3){b[0].style.width=100*t.hp/t.maxhp+'%';b[1].style.width=100*o.hp/o.maxhp+'%';b[2].style.width=100*t.charge+'%'}const tm=document.querySelector('.timer');if(tm)tm.textContent=sec(S.rem)+'s'}
+const vote=c=>{post('/api/vote',{char:c});S.you.vote=c;sig='';render()};
+const side=k=>{if(S.you.team===k)return;post('/api/side',{side:k});S.you.team=k;sig='';render();navigator.vibrate&&navigator.vibrate(15)};
+const move=m=>{post('/api/move',{move:m});S.you.move=m;sig='';render();navigator.vibrate&&navigator.vibrate(15)};
+function taunt(tid){post('/api/taunt',{tid});navigator.vibrate&&navigator.vibrate([20,40,20]);tcdUntil=Date.now()+3000;newOffer();sig='';render();clearTimeout(tcdTimer);tcdTimer=setTimeout(()=>{sig='';render()},3050)}
+function tap(e){e.preventDefault();pending++;if(S&&S.you)S.you.taps++;navigator.vibrate&&navigator.vibrate(8);const s=document.querySelector('#tap small');if(s)s.textContent=S.you.taps+' taps'}
+setInterval(()=>{if(pending){const n=pending;pending=0;post('/api/tap',{n})}},400);
+join();
+</script></body></html>

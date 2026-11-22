@@ -1,0 +1,12 @@
+# secrets and local state
+.env
+.claude/
+.DS_Store
+node_modules/
+
+# generated media that is big or throwaway (portraits in media/roster/neon-disruptor and cached voices in media/audio ARE kept)
+media/*.mp4
+media/*.png
+media/tries/
+media/sheets/
+media/roster/archive/

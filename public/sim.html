@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Weird Wrestling — Crowd simulator</title>
+<style>
+:root{--bg:#0a0612;--fg:#f6f3ff;--mut:#9a8fba;--A:#ff3d81;--B:#19d3ff}
+*{box-sizing:border-box}
+html,body{margin:0;background:#07040d;color:var(--fg);font-family:-apple-system,system-ui,sans-serif}
+body{padding:12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;font-size:13px}
+.bar b{font-size:15px}.bar .grow{flex:1}
+button,input{font:inherit;border-radius:8px;border:0;padding:7px 12px;background:#251a3d;color:var(--fg)}
+input{width:64px}button{cursor:pointer}button.p{background:#7b3bff}
+.pill{padding:4px 10px;border-radius:99px;background:#171028;color:var(--mut)}
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--w,110px),1fr));gap:10px}
+.ph{aspect-ratio:9/16;border-radius:14px;border:3px solid var(--c,#555);background:var(--bg);padding:6px 6px 8px;display:flex;flex-direction:column;gap:4px;overflow:hidden;font-size:9px;position:relative;transition:box-shadow .15s}
+.ph.off{opacity:.35;border-color:#333;--c:#333}
+.ph.flash{box-shadow:0 0 12px var(--c)}
+.ph .hd{display:flex;justify-content:space-between;font-weight:700;font-size:9px}
+.ph .hd span:first-child{background:var(--c);color:#0a0612;border-radius:99px;padding:1px 6px}
+.ph .bd{flex:1;display:flex;flex-direction:column;justify-content:center;gap:5px;text-align:center}
+.ph .ic{font-size:26px;line-height:1}
+.grid6{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.grid6 i{font-style:normal;background:#251a3d;border-radius:6px;padding:4px 0;font-size:16px}
+.grid6 i.sel{background:#ffd23f;box-shadow:0 0 0 2px #fff6 inset}
+.chips{display:flex;gap:3px;justify-content:center}
+.c{font-style:normal;background:#251a3d;border-radius:6px;padding:3px 0;flex:1;font-size:14px}
+.c.sel{background:var(--c);box-shadow:0 0 0 2px #fff6 inset}
+.tp{height:34px;border-radius:10px;background:radial-gradient(circle,var(--c,#555),#1b1230 140%);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;letter-spacing:.5px;transition:transform .08s;color:#fff}
+.ph.flash .tp{transform:scale(.94)}
+.ph .tz{position:absolute;left:4px;right:4px;top:30px;background:#fff;color:#111;border-radius:8px;padding:3px 4px;font-weight:800;font-size:8px;animation:tz 2s forwards;z-index:2}
+@keyframes tz{0%{opacity:0;transform:scale(.7)}10%{opacity:1;transform:scale(1)}85%{opacity:1}100%{opacity:0}}
+.mini{height:4px;border-radius:3px;background:#251a3d;overflow:hidden}.mini i{display:block;height:100%;background:var(--c)}
+</style></head><body>
+<div class="bar" id="bar">
+  <b>📱 Crowd simulator</b>
+  <span class="pill" id="st"></span><span class="pill" style="color:var(--A)" id="na"></span><span class="pill" style="color:var(--B)" id="nb"></span>
+  <span class="grow"></span>
+  <span id="ctl">users <input id="n" type="number" min="2" max="200" value="30"> <button class="p" onclick="enter()">Join</button>
+  <button onclick="adm('start')">Start match</button> <button onclick="adm('reset')">Reset</button> <button onclick="adm('wipe');joined=false">Clear</button></span>
+</div>
+<div class="wall" id="wall"></div>
+<script>
+const Q=new URLSearchParams(location.search),EMBED=Q.has('embed');
+if(EMBED){document.getElementById('ctl').style.display='none';document.getElementById('bar').style.display='none';document.body.style.padding='6px';document.documentElement.style.setProperty('--w','88px')}
+const MV={attacco:'⚔️',guardia:'🛡️',speciale:'✨'},MOVES=Object.keys(MV),COL={A:'#ff3d81',B:'#19d3ff'};
+const TAUNTS=['t1','t2','t3','t4','t5','t6','t7','t8'],TT={t1:'Soggy noodle!',t2:'Wet sock!',t3:'Houseplant!',t4:'Hamster!',t5:'Toaster scarier!',t6:'Shadow left you!',t7:'Grandma hits harder!',t8:'Sleepy kitten!'};
+const $=id=>document.getElementById(id),rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
+let N=Number(Q.get('n'))||30,users=[],S=null,by={},joined=false,prevPhase='',epoch=0,hype={A:1,B:1};
+const adm=c=>fetch('/admin/'+c).catch(()=>{});
+
+function build(n){
+  $('wall').innerHTML='';users=[];
+  for(let i=0;i<n;i++){
+    const u={id:'sim-'+String(i).padStart(3,'0'),slow:rand(.5,1.6),energy:rand(.15,1),favMove:pick(MOVES),joinAt:0,sent:false,html:'',taps:0,rude:Math.random()<.45,tauntAt:0,fanOfIdx:Math.random()};
+    const el=document.createElement('div');el.className='ph off';el.innerHTML='<div class="hd"><span>#'+(i+1)+'</span><span class="tc"></span></div><div class="bd">📲 scanning…</div><div class="tp">0</div>';
+    $('wall').appendChild(el);u.el=el;u.bd=el.querySelector('.bd');u.tc=el.querySelector('.tc');u.tp=el.querySelector('.tp');users.push(u);
+  }
+}
+function enter(){
+  N=Number($('n').value)||30;if(users.length!==N)build(N);
+  const now=Date.now();users.forEach(u=>{u.joinAt=now+rand(0,8000);u.sent=false}); // people scan the QR gradually
+  joined=true;
+}
+const es=new EventSource('/sim-events');
+es.onmessage=e=>{S=JSON.parse(e.data);by={};S.players.forEach(p=>by[p.id]=p);
+  if(S.phase==='casting'&&prevPhase!=='casting')epoch++;
+  prevPhase=S.phase;draw()};
+
+function draw(){
+  $('st').textContent=S.phase+(S.phase==='fight'?` · round ${S.beat}`:'')+(S.rem?` · ${Math.ceil(S.rem/1000)}s`:'')+(S.call?` · ${S.call.text}`:'');
+  $('na').textContent=(S.A.name||'Pink')+' '+S.A.n;$('nb').textContent=(S.B.name||'Cyan')+' '+S.B.n;
+  for(const u of users){const p=by[u.id];
+    if(!p){u.el.className='ph off';continue}
+    u.el.style.setProperty('--c',p.team?COL[p.team]:'#8a6bff');u.el.classList.remove('off');u.tc.textContent=p.team?S[p.team].name.split(' ').pop():'';
+    let h='';
+    if(S.phase==='lobby')h='<div class="ic">🎪</div>Waiting';
+    else if(S.phase==='casting')h=`<div>Vote!</div><div class="grid6">${S.roster.map(c=>`<i class="${p.vote===c.id?'sel':''}">${c.icon}</i>`).join('')}</div>`;
+    else if(S.phase==='generating'){h=p.team?`<div class="ic">${S[p.team].name?'🎟️':''}</div>Backing<br><b>${S[p.team].name}</b>`:'…'}
+    else if(S.phase==='fight'&&p.team){const me=S[p.team];
+      h=`<div>Round ${S.beat}/6</div><div class="mini"><i style="width:${100*me.hp/me.maxhp}%"></i></div><div class="chips">${MOVES.map(m=>`<i class="c ${p.move===m?'sel':''}" style="${S.beatPhase!=='vote'?'opacity:.4':''}">${MV[m]}</i>`).join('')}</div><div class="mini"><i style="width:${100*me.charge}%"></i></div>`}
+    else if(S.phase==='result'&&p.team){const w=S.winner===p.team;h=`<div class="ic">${w?'🏆':'💀'}</div>${w?'Victory':'Defeat'}`}
+    if(h!==u.html){u.bd.innerHTML=h;u.html=h}
+    u.tp.textContent=S.phase==='fight'?'TAP '+p.taps:'TAP';
+    if(p.taps>u.taps){u.el.classList.add('flash');setTimeout(()=>u.el.classList.remove('flash'),130)}u.taps=p.taps;
+  }
+}
+function bubble(u,text){const d=document.createElement('div');d.className='tz';d.textContent='😈 '+text;u.el.appendChild(d);setTimeout(()=>d.remove(),2100)}
+
+// ---- virtual people: they act only through the server's player functions ----
+setInterval(()=>{
+  if(!S||!joined)return;const now=Date.now(),acts=[];
+  const tapCall=S.call&&S.call.type==='tap',tauntCall=S.call&&S.call.type==='taunt';
+  for(const u of users){
+    if(!u.sent&&now>=u.joinAt){acts.push({id:u.id,a:'join'});u.sent=true;continue}
+    const p=by[u.id];if(!p)continue;
+    if(S.phase==='casting'){
+      if(u.epoch!==epoch){u.epoch=epoch;u.voteAt=now+rand(800,9000)*u.slow;u.voted=false;u.fav=null}
+      if(!u.voted&&now>=u.voteAt){u.voted=true;const sorted=S.roster.slice().sort((a,b)=>b.votes-a.votes),lead=sorted[0];
+        u.fav??=S.roster[Math.floor(u.fanOfIdx*S.roster.length)].id;
+        acts.push({id:u.id,a:'vote',char:(lead.votes&&Math.random()<.45)?pick(sorted.slice(0,2)).id:u.fav})}
+    }
+    if(S.phase==='fight'&&S.beatPhase==='vote'&&p.team){
+      if(u.beat!==S.beat){u.beat=S.beat;u.moveAt=now+rand(600,5500)*u.slow}
+      if(u.moveAt&&!p.move&&now>=u.moveAt)acts.push({id:u.id,a:'move',move:Math.random()<.4?u.favMove:pick(MOVES)});
+      const boost=(tapCall&&(S.call.team==='both'||S.call.team===p.team))?1.6:1;
+      if(Math.random()<Math.min(.95,u.energy*hype[p.team]*.5*boost))acts.push({id:u.id,a:'tap',n:1+Math.floor(Math.random()*3)});
+    }
+    if(S.phase==='fight'&&p.team&&u.rude&&now-u.tauntAt>3200&&Math.random()<(tauntCall?.05:.004)){u.tauntAt=now;const tid=pick(TAUNTS);acts.push({id:u.id,a:'taunt',tid});bubble(u,TT[tid])}
+    if(S.phase==='fight'&&p.team&&Math.random()<.0008)acts.push({id:u.id,a:'side',side:p.team==='A'?'B':'A'}); // a few fickle fans switch sides
+  }
+  if(acts.length)fetch('/api/sim/act',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acts})}).catch(()=>{});
+},300);
+setInterval(()=>{hype.A=rand(.6,1.3);hype.B=rand(.6,1.3)},4000); // each side's mood swings
+build(N);$('n').value=N;if(Q.has('auto'))setTimeout(enter,300);
+</script></body></html>

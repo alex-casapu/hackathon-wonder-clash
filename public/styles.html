@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Weird Wrestling — Style gallery</title>
+<style>
+:root{--bg:#0a0612;--fg:#f6f3ff;--mut:#9a8fba;--card:#171028}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,system-ui,sans-serif}
+body{padding:16px;max-width:1500px;margin:auto}
+h1{font-size:22px;margin:0 0 4px}p{color:var(--mut);margin:0 0 16px}
+.st{background:var(--card);border-radius:16px;padding:14px;margin-bottom:18px;border:3px solid transparent}
+.st.cur{border-color:#ffd23f;box-shadow:0 0 18px #ffd23f55}
+.hd{display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap}.hd h2{margin:0;font-size:18px}.hd span{color:var(--mut);font-size:13px;flex:1;min-width:200px}
+button{font:inherit;border:0;border-radius:10px;padding:8px 14px;background:#7b3bff;color:#fff;font-weight:700;cursor:pointer}button.on{background:#2b8a57;cursor:default}
+.g{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.g img,.g .na{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:#0006;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px}
+@media(max-width:800px){.g{grid-template-columns:repeat(3,1fr)}}
+</style></head><body>
+<h1>Pick a look</h1><p>Same six characters, five treatments. Choosing a style also drives the fight video prompts (arena + sound). You can only switch in the lobby.</p>
+<div id="o"></div>
+<script>
+async function load(){const d=await fetch('/styles.json').then(r=>r.json());
+ document.getElementById('o').innerHTML=d.styles.map(s=>`<div class="st ${s.id===d.current?'cur':''}"><div class="hd"><h2>${s.name}</h2><span>${s.blurb}</span>${d.local?(s.id===d.current?'<button class="on">In use</button>':`<button onclick="use('${s.id}')">Use this style</button>`):''}</div><div class="g">${Object.values(s.images).map(u=>u?`<img src="${u}" loading="lazy">`:'<div class="na">not generated</div>').join('')}</div></div>`).join('')}
+async function use(id){await fetch('/admin/style?name='+id);load()}
+load();
+</script></body></html>

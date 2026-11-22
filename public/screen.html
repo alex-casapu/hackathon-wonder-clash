@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Weird Wrestling — Screen</title>
+<style>
+:root{--bg:#0a0612;--fg:#f6f3ff;--mut:#9a8fba;--card:#171028;--A:#ff3d81;--B:#19d3ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 120%,#3a1560,#0a0612 60%);color:var(--fg);font-family:-apple-system,system-ui,sans-serif;overflow:hidden}
+#app{height:100vh;display:flex;flex-direction:column;padding:2vh 2.5vw 6vh;gap:1.4vh;position:relative}
+#body{flex:1;display:flex;flex-direction:column;min-height:0;gap:1.2vh}
+.head{display:flex;justify-content:space-between;align-items:center;font-size:2vh;color:var(--mut);letter-spacing:.2em;text-transform:uppercase}
+.title{font-size:2.8vh;font-weight:900;color:var(--fg);letter-spacing:.08em}
+.hud{display:grid;grid-template-columns:1fr 1fr;gap:2vw}
+.hs{display:flex;flex-direction:column;gap:.7vh}.hs.r{text-align:right}
+.tname{font-size:2.5vh;font-weight:800;color:var(--c)}
+.hp{height:3vh;border-radius:2vh;background:#1e1535;overflow:hidden;position:relative}
+.hp i{display:block;height:100%;background:linear-gradient(90deg,var(--c),#fff8);transition:width .8s}
+.hs.r .hp i{margin-left:auto;background:linear-gradient(270deg,var(--c),#fff8)}
+.hp b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.8vh;text-shadow:0 1px 4px #000}
+.charge,.tilt{height:.9vh;border-radius:1vh;background:#1e1535;overflow:hidden}.charge i{display:block;height:100%;background:#ffd23f;transition:width .2s}.tilt i{display:block;height:100%;background:#b24dff;transition:width .3s}
+.hs.r .charge i,.hs.r .tilt i{margin-left:auto}
+.stage{flex:1;position:relative;border-radius:2.4vh;background:#06040c;border:2px solid #ffffff18;overflow:hidden;min-height:0;display:flex;align-items:center;justify-content:center}
+.stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .15s}
+#mock{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-around;padding:2vh}
+.mk{height:100%;max-width:45%;position:relative;display:flex;align-items:center;justify-content:center}
+.mk img{max-height:100%;max-width:100%;object-fit:contain;border-radius:2vh;animation:float 3s ease-in-out infinite}
+.mk .ic{font-size:22vh;animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-1.5vh)}}
+.hit{animation:shake .5s!important}@keyframes shake{20%{transform:translateX(-3vh)}40%{transform:translateX(3vh)}60%{transform:translateX(-2vh)}80%{transform:translateX(2vh)}}
+.dmg{position:absolute;top:18%;font-size:9vh;font-weight:900;color:#fff;text-shadow:0 0 3vh var(--c),0 0 1vh #000;animation:pop 1.8s forwards;pointer-events:none;z-index:3}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}20%{opacity:1;transform:scale(1.3)}100%{opacity:0;transform:translateY(-8vh)}}
+.nameplate{position:absolute;bottom:1.2vh;font-size:2.6vh;font-weight:800;text-shadow:0 2px 8px #000;z-index:2}
+.moves{display:grid;grid-template-columns:1fr 1fr;gap:2vw}
+.mrow{display:flex;gap:.8vw}.mv{flex:1;background:#1e1535;border-radius:1.2vh;padding:.9vh;text-align:center;font-size:1.8vh;position:relative;overflow:hidden}
+.mv i{position:absolute;left:0;bottom:0;height:.6vh;background:var(--c);transition:width .3s}
+#ov{position:absolute;left:0;right:0;top:16vh;z-index:6;text-align:center;pointer-events:none}
+.banner{font-size:7vh;font-weight:900;text-shadow:0 0 4vh #000}
+.banner.pop{animation:pop2 2.4s forwards}
+@keyframes pop2{0%{opacity:0;transform:scale(.5)}15%{opacity:1;transform:scale(1.1)}80%{opacity:1}100%{opacity:0}}
+#status{position:absolute;left:50%;top:1.5vh;transform:translateX(-50%);z-index:4;font-size:2vh;background:#000a;padding:.8vh 2vh;border-radius:3vh;color:#fff;display:none}
+#pop{position:absolute;left:1.5vw;bottom:5vh;z-index:5;width:14vh;display:flex;flex-direction:column;align-items:center;gap:.6vh;transition:transform .2s}
+#pop img{width:14vh;height:14vh;border-radius:50%;object-fit:cover;border:.5vh solid #ffb300;box-shadow:0 0 2.5vh #ffb30066;background:#222}
+#pop .live{background:#e11d2e;color:#fff;font-size:1.5vh;font-weight:900;letter-spacing:.12em;padding:.2vh 1vh;border-radius:2vh;margin-top:-2.2vh;z-index:1}
+#pop .eq{display:flex;gap:.4vh;align-items:flex-end;height:2.4vh;opacity:.0}
+#pop .eq i{display:block;width:.7vh;height:30%;background:#ffb300;border-radius:1px}
+#pop.talk{transform:scale(1.12)}#pop.talk img{box-shadow:0 0 5vh #ffb300;animation:bob .35s infinite alternate}#pop.talk .eq{opacity:1}
+#pop.talk .eq i{animation:eq .4s infinite alternate}#pop.talk .eq i:nth-child(2){animation-delay:.1s}#pop.talk .eq i:nth-child(3){animation-delay:.2s}#pop.talk .eq i:nth-child(4){animation-delay:.05s}
+@keyframes eq{to{height:100%}}
+@keyframes bob{to{transform:translateY(-.8vh) rotate(-3deg)}}
+.hs.speaking .hp{box-shadow:0 0 2.2vh var(--c);outline:.3vh solid var(--c)}
+#call{position:absolute;left:50%;top:9vh;transform:translateX(-50%);z-index:5;background:linear-gradient(90deg,#ffd23f,#ff7a18);color:#1a0d00;font-weight:900;font-size:4vh;padding:1vh 3vh;border-radius:3vh;display:none;animation:pulse .5s infinite alternate;white-space:nowrap}
+@keyframes pulse{to{transform:translateX(-50%) scale(1.06)}}
+.bub{position:absolute;top:34%;z-index:4;font-size:9vh;animation:bub 2.2s forwards}
+@keyframes bub{0%{opacity:0;transform:scale(.6)}12%{opacity:1;transform:scale(1.05)}85%{opacity:1}100%{opacity:0;transform:translateY(-4vh)}}
+#unlock{position:fixed;top:1vh;left:50%;transform:translateX(-50%);z-index:60;background:#ffd23f;color:#1a0d00;font-weight:800;font-size:2vh;padding:.8vh 2vh;border-radius:3vh;cursor:pointer}
+.lobby{flex:1;display:flex;align-items:center;justify-content:center;gap:6vw}
+.qr{background:#fff;padding:2vh;border-radius:3vh;width:48vh;height:48vh}.qr img{width:100%;height:100%}
+.big{font-size:8.5vh;font-weight:900;line-height:1.05}.sub{font-size:3vh;color:var(--mut);margin-top:1vh}
+.cnt{margin-top:3vh;font-size:5vh;font-weight:900}.cnt small{font-size:2.4vh;color:var(--mut);margin-left:1vw}
+/* casting grid */
+.cast{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:1.6vh 1.6vw;min-height:0}
+.cc{background:var(--card);border-radius:2vh;padding:1vh;display:flex;gap:1.2vw;align-items:center;min-height:0;position:relative;border:.4vh solid transparent;transition:border-color .3s,transform .3s}
+.cc.top{border-color:#ffd23f;transform:scale(1.02);box-shadow:0 0 3vh #ffd23f55}
+.cc img,.cc .ic{height:100%;aspect-ratio:1;object-fit:cover;border-radius:1.4vh;background:#0006;flex:none;display:flex;align-items:center;justify-content:center;font-size:9vh}
+.cc .tx{flex:1;min-width:0}.cc b{font-size:2.6vh;display:block}.cc small{font-size:1.7vh;color:var(--mut);display:block;margin:.4vh 0 1vh;line-height:1.2}
+.cc .vb{height:1.8vh;border-radius:1vh;background:#251a3d;overflow:hidden}.cc .vb i{display:block;height:100%;background:linear-gradient(90deg,#ff3d81,#19d3ff);transition:width .4s}
+.cc .vn{position:absolute;top:1vh;right:1.2vh;font-size:3.2vh;font-weight:900}
+.cc .rk{position:absolute;top:1vh;left:1vh;background:#ffd23f;color:#1a0d00;font-weight:900;font-size:1.8vh;padding:.2vh 1vh;border-radius:2vh}
+.gen{flex:1;display:flex;align-items:center;justify-content:center;gap:4vw;min-height:0}
+.gen .fc{height:100%;max-height:62vh;display:flex;flex-direction:column;align-items:center;gap:1vh;min-height:0}
+.gen .fc img,.gen .fc .ic{height:100%;min-height:0;border-radius:2vh;object-fit:contain;max-width:34vw;font-size:25vh;display:flex;align-items:center}
+.gen .fc b{font-size:3.4vh;color:var(--c)}.gen .fc small{font-size:2.2vh;color:var(--mut)}
+.gen .vs{font-size:10vh;font-weight:900}
+.tag{position:fixed;bottom:7vh;right:1vw;font-size:1.4vh;color:var(--mut);z-index:2}
+</style></head><body><div id="app"><div class="head"><span class="title">⚔️ WEIRD WRESTLING</span><span id="hmid"></span><span id="hr"></span></div><div id="body"></div><div id="ov"></div></div><div class="tag" id="tag"></div><div id="unlock">🔊 Click anywhere to enable sound</div>
+<script>
+const COL={A:'#ff3d81',B:'#19d3ff'},$=id=>document.getElementById(id);
+let S=null,mode='',fx={},ovT=null,act=0,curSeq=0,preSeq=0,audioOK=false,sayT=null,voice=null;
+fetch('/info').then(r=>r.json()).then(j=>{$('tag').textContent=(j.live?'MachGen LIVE':'MOCK')+' · '+j.url});
+const es=new EventSource('/events');es.onmessage=e=>{S=JSON.parse(e.data);render()};
+const sec=ms=>Math.ceil(ms/1000);
+const adm=c=>fetch('/admin/'+c).catch(()=>{});
+function unlock(){if(audioOK)return;audioOK=true;$('unlock').style.display='none';[0,1].forEach(i=>$('v'+i)&&($('v'+i).muted=false))}
+addEventListener('click',unlock);
+addEventListener('keydown',e=>{unlock();if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(e.key===' '){e.preventDefault();adm(S.phase==='lobby'?'start':'skip')}if(e.key==='r')adm('reset');if(e.key==='b')adm('bots?n=20');if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x')adm('halt')});
+function ov(html,ms){clearTimeout(ovT);$('ov').innerHTML=html;if(ms)ovT=setTimeout(()=>{$('ov').innerHTML=''},ms)}
+const pic=c=>c.img?`<img src="${c.img}">`:`<div class="ic">${c.icon}</div>`;
+const MVL=(k,m)=>m==='speciale'?`✨ ${S[k].special}`:m==='attacco'?'⚔️ Attack':'🛡️ Guard';
+
+function render(){
+  if(!S)return;
+  const lab={vote:'VOTE & TAP',lock:'VOTES LOCKED',finale:'FINALE'}[S.beatPhase]||'';
+  $('hmid').textContent=S.phase==='fight'?`Round ${S.beat}/${S.beats} · ${lab}`:S.phase==='casting'?'CASTING · VOTE FOR YOUR FAVORITE':S.phase;
+  $('hr').textContent=S.rem&&S.phase!=='generating'?sec(S.rem)+'s':'';
+  if(['fight','result'].includes(S.phase)){ if(mode!=='arena'){buildArena();mode='arena';} updateArena(); }
+  else { mode=S.phase; fx.ov='';curSeq=0;preSeq=0;fx.beat=0;fx.say=0;fx.fx=0; $('body').innerHTML=staticView(); ov(''); }
+}
+function staticView(){
+  if(S.phase==='lobby')return `<div class="lobby"><div class="qr"><img src="/qr.svg"></div><div><div class="big">Scan.<br>Pick your fighter.</div><div class="sub">Six weirdos. The crowd picks two. Then YOU decide who wins.</div>
+    <div class="cnt">${S.players}<small>people in</small></div><div class="sub" style="margin-top:2vh;font-size:2.2vh">[space] start · [b] +20 bots · [r] reset · [x] STOP ALL · [d] debug · [f] fullscreen</div></div></div>`;
+  if(S.phase==='casting'){const mx=Math.max(1,...S.roster.map(c=>c.votes)),rank=[...S.roster].sort((a,b)=>b.votes-a.votes).map(c=>c.id),tot=Math.max(1,S.roster.reduce((s,c)=>s+c.votes,0));
+    return `<div class="cast">${S.roster.map(c=>{const r=rank.indexOf(c.id),top=r<2&&c.votes>0;return `<div class="cc ${top?'top':''}">${pic(c)}<div class="tx"><b>${c.name}</b><small>${c.tagline}</small><div class="vb"><i style="width:${100*c.votes/mx}%"></i></div></div><span class="vn">${c.votes}</span>${top?`<span class="rk">#${r+1}</span>`:''}</div>`}).join('')}</div>`}
+  if(S.phase==='generating'){const f=(k)=>{const x=S[k];return `<div class="fc" style="--c:${COL[k]}">${x.char?pic(x.char):''}<b>${x.name}</b><small>${x.n} fans · ${x.char?x.char.tagline:''}</small></div>`};
+    return `<div class="gen">${f('A')}<div class="vs">VS</div>${f('B')}</div><div class="sub" style="text-align:center">Getting the ring ready… pick your side on your phone!</div>`}
+  return '';
+}
+function buildArena(){
+  $('body').innerHTML=`<div class="hud">${['A','B'].map(k=>`<div class="hs ${k==='B'?'r':''}" style="--c:${COL[k]}"><div class="tname" id="tn${k}"></div><div class="hp"><i id="hpi${k}"></i><b id="hpb${k}"></b></div><div class="charge"><i id="ch${k}"></i></div><div class="tilt"><i id="tl${k}"></i></div></div>`).join('')}</div>
+  <div class="stage" id="stage"><video id="v0" playsinline></video><video id="v1" playsinline></video><div id="mock"></div>
+    <div class="nameplate" id="npA" style="left:2vw;color:${COL.A}"></div><div class="nameplate" id="npB" style="right:2vw;color:${COL.B}"></div><div id="status"></div><div id="call"></div>
+    <div id="pop"><img src="/host.png"><span class="live">● LIVE</span><div class="eq"><i></i><i></i><i></i><i></i></div></div></div>
+  <div class="moves">${['A','B'].map(k=>`<div class="mrow" id="mv${k}" style="--c:${COL[k]}">${['attacco','guardia','speciale'].map(m=>`<div class="mv" data-m="${m}"><span></span><i></i></div>`).join('')}</div>`).join('')}</div>`;
+  [0,1].forEach(i=>{$('v'+i).muted=!audioOK;$('v'+i).volume=0.55});act=0;curSeq=0;preSeq=0;fx.mockKey='';
+  // if the next clip is late, replay the last 2.5s in a loop instead of freezing on the last frame
+  [0,1].forEach(i=>$('v'+i).addEventListener('ended',e=>{if(e.target===vid(act)&&S&&S.phase==='fight'){e.target.currentTime=Math.max(0,(e.target.duration||3)-2.5);e.target.play().catch(()=>{})}}));
+}
+const vid=i=>$('v'+i);
+function syncVideo(){
+  const v=S.video,n=S.next;
+  if(n&&n.url&&preSeq!==n.seq){preSeq=n.seq;const el=vid(1-act);el.dataset.seq=n.seq;el.src=n.url;el.preload='auto';el.load()}
+  if(v&&v.seq&&v.seq!==curSeq){
+    curSeq=v.seq;if(!v.url)return;
+    const el=vid(1-act);if(el.dataset.seq!=v.seq){el.dataset.seq=v.seq;el.src=v.url}
+    el.muted=!audioOK;el.volume=speaking?0.12:0.55;el.currentTime=0;el.play().catch(()=>{});el.style.opacity=1;const old=vid(act);old.style.opacity=0;setTimeout(()=>old.pause(),250);act=1-act;
+    $('mock').style.display='none';
+  }
+}
+function setMock(){ // no generated video: show the two portraits
+  const k=S.A.char&&S.B.char?S.A.char.id+S.B.char.id:'';if(fx.mockKey===k)return;fx.mockKey=k;if(!k)return;
+  $('mock').innerHTML=['A','B'].map(c=>`<div class="mk" id="mk${c}">${pic(S[c].char)}</div>`).join('');
+}
+function updateArena(){
+  for(const k of ['A','B']){const x=S[k];
+    $('tn'+k).textContent=`${x.corner} corner · ${x.n} fans`;
+    $('hpi'+k).style.width=100*x.hp/x.maxhp+'%';$('hpb'+k).textContent=`${x.name} — ${x.hp} / ${x.maxhp}`;
+    $('ch'+k).style.width=100*x.charge+'%';$('tl'+k).style.width=100*x.tilt/0.3+'%';$('np'+k).textContent=x.name;
+    $('mv'+k).style.visibility=S.phase==='fight'&&S.beatPhase==='vote'?'visible':'hidden';
+    const tot=Math.max(1,x.n);$('mv'+k).querySelectorAll('.mv').forEach(d=>{const m=d.dataset.m;d.firstChild.textContent=`${MVL(k,m)} ${x.moveVotes[m]}`;d.lastChild.style.width=100*x.moveVotes[m]/tot+'%'});
+  }
+  if(!S.live)setMock();
+  syncVideo();
+  if(S.phase==='fight'&&S.beat===1&&!S.last&&fx.ov!=='vs'){fx.ov='vs';ov(`<div class="banner pop">${S.A.name} <small>VS</small> ${S.B.name}</div>`,3000)}
+  if(S.phase==='result'&&fx.ov!=='result'){fx.ov='result';ov(`<div class="banner" style="color:${COL[S.winner]};font-size:9vh">🏆 ${S[S.winner].name.toUpperCase()} WINS!</div><div class="sub">${S.mvp?`Top tapper: ${S[S.mvp.team].name}'s fan with ${S.mvp.taps} taps`:''}</div>`,0)}
+  $('status').style.display=S.phase==='fight'&&S.beatPhase==='lock'&&S.live&&S.video.seq===curSeq&&!$('ov').innerHTML?'block':'none';$('status').textContent='Next clash incoming…';
+  const c=S.call;$('call').style.display=c?'block':'none';if(c)$('call').textContent=c.text;
+  playFx();playSay();playTaunt();
+}
+function playFx(){
+  if(S.phase!=='fight'||!S.last||S.last.beat===fx.beat)return;fx.beat=S.last.beat;const l=S.last;
+  const pop=(side,txt,c)=>{const d=document.createElement('div');d.className='dmg';d.style.cssText=`--c:${c};${side==='A'?'left':'right'}:14%`;d.textContent=txt;$('stage').appendChild(d);setTimeout(()=>d.remove(),1900)};
+  if(l.dA)pop('B','-'+l.dA,COL.A);if(l.dB)pop('A','-'+l.dB,COL.B);
+  if(!S.live){const s=c=>{const e=$('mk'+c)&&$('mk'+c).firstElementChild;if(e){e.classList.remove('hit');void e.offsetWidth;e.classList.add('hit')}};if(l.dA)s('B');if(l.dB)s('A')}
+  ov(`<div class="banner pop">${MVL('A',l.ma)} vs ${MVL('B',l.mb)}</div>`,2500);
+}
+// ---- speech: AUDIO ONLY. The host is the loudest voice; while anyone speaks the video sound is ducked. ----
+let lastSay=-1,queue=[],speaking=false;
+const duck=on=>[0,1].forEach(i=>{const v=$('v'+i);if(v)v.volume=on?0.12:0.55});
+function playSay(){
+  if(lastSay<0){lastSay=Math.max(0,...(S.says||[]).map(x=>x.seq));return} // do not replay old lines on load
+  for(const x of S.says||[])if(x.seq>lastSay){lastSay=x.seq;queue.push(x)}
+  if(queue.length>3)queue=queue.filter((x,i)=>x.who==='host'||i>=queue.length-2);
+  pump();
+}
+function pump(){
+  if(speaking||!queue.length)return;
+  const s=queue.shift(),pop=$('pop'),hs=s.who==='host'?null:document.querySelectorAll('.hs')[s.who==='A'?0:1];
+  const done=()=>{speaking=false;duck(false);if(pop)pop.classList.remove('talk');document.querySelectorAll('.hs').forEach(e=>e.classList.remove('speaking'));pump()};
+  speaking=true;duck(true);if(s.who==='host'&&pop)pop.classList.add('talk');if(hs)hs.classList.add('speaking');
+  if(!audioOK||!s.url){setTimeout(done,1200);return}   // no sound available: just a short visual cue
+  const a=new Audio(s.url);a.volume=s.who==='host'?1:0.75;a.onended=done;a.onerror=done;a.play().catch(done);
+}
+function playTaunt(){
+  const f=S.fx;if(!f||f.seq===fx.fx)return;fx.fx=f.seq;
+  document.querySelectorAll('.bub.'+f.from).forEach(e=>e.remove());
+  const d=document.createElement('div');d.className='bub '+f.from;d.textContent='😈';d.style.cssText+=`;${f.from==='A'?'right':'left'}:12%`; // thrown at the OTHER fighter
+  $('stage').appendChild(d);setTimeout(()=>d.remove(),2300);
+}
+</script><script src="/debug-panel.js"></script></body></html>
