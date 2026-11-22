@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Weird Wrestling</title>
+<title>GlitchOut Fighter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik+Glitch&family=VT323&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/brand.css">
@@ -50,6 +50,10 @@ button:disabled{opacity:.35}
 .call{background:var(--y);color:var(--r);padding:6px;text-align:center;font-family:var(--f-bang);font-size:25px;line-height:1;text-transform:uppercase;-webkit-text-stroke:2px #000;paint-order:stroke fill;animation:pulse .5s steps(1) infinite}
 @keyframes pulse{50%{background:var(--r);color:var(--y)}}
 .result{font-family:var(--f-bang);font-size:56px;line-height:1;text-transform:uppercase;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:4px 4px 0 #000}
+body:not(.fx){--f-disp:Impact,'Arial Black','Helvetica Neue',sans-serif}
+body:not(.fx).crt::after{display:none!important}
+body:not(.fx) .dA,body:not(.fx) .dB,body:not(.fx) .dG,body:not(.fx) .dY{filter:none!important}
+body:not(.fx) .gs::before,body:not(.fx) .gs::after,body:not(.fx) .gl::before,body:not(.fx) .gl::after,body:not(.fx) .trk,body:not(.fx) .sky{display:none!important}
 </style></head><body class="crt"><div id="app"></div>
 <script src="/assets/art.js"></script><script src="/assets/brand.js"></script>
 <script>
@@ -61,7 +65,7 @@ const COL={A:'var(--A)',B:'var(--B)'},sec=ms=>Math.ceil(ms/1000);
 // small JPEG thumbnail (c.thumb) for phones; duotone class: per character in casting, per corner once chosen
 const pic=(c,cls)=>{const u=c.thumb||c.img;return u?`<div class="gs ${cls}" style="--img:url(${u})"></div>`:`<div class="ic">${c.icon}</div>`};
 function newOffer(){offer=[...S.taunts].sort(()=>Math.random()-.5).slice(0,3)}
-function topBar(){const y=S.you;return `<div class="top"><span class="p">P666</span><span>Weird Wrestling</span>${y.team?`<span class="chip" style="--tc:${COL[y.team]}">Team ${S[y.team].corner}</span>`:''}<span class="timer" ${y.team?'':'style="margin-left:auto"'}>${S.rem?sec(S.rem)+'s':''}</span></div>`}
+function topBar(){const y=S.you;return `<div class="top"><span class="p">P666</span><span>GlitchOut Fighter</span>${y.team?`<span class="chip" style="--tc:${COL[y.team]}">Team ${S[y.team].corner}</span>`:''}<span class="timer" ${y.team?'':'style="margin-left:auto"'}>${S.rem?sec(S.rem)+'s':''}</span></div>`}
 function sideCards(y){return `<div class="side">${['A','B'].map(k=>{const x=S[k];return `<div class="card ${y.team===k?'mine':''}" style="--c:${COL[k]}" onclick="side('${k}')"><div class="im">${x.char?pic(x.char,BR.corner(k)):''}</div><div class="cp"><b>${x.name}</b><small>${x.n} fans</small></div></div>`}).join('')}</div>`}
 function render(){
   if(!S||!S.you)return;const y=S.you,t=y.team?S[y.team]:null,o=y.team?S[y.team==='A'?'B':'A']:null;
@@ -70,7 +74,7 @@ function render(){
   const key=[S.phase,S.beat,S.beatPhase,y.vote,y.team,y.move,callOn?S.call.seq:0,cd].join('|');
   if(S.phase==='fight'&&sig===key){updateFight();return}
   let h=topBar();
-  if(S.phase==='lobby')h+=`<div class="center">${BR.ART.saucer(7)}<h1>Welcome to the weirdest wrestling show</h1><p>${S.players} people are in · waiting for the start</p></div>`;
+  if(S.phase==='lobby')h+=`<div class="center">${BR.ART.saucer(7)}<h1>Welcome to GlitchOut Fighter</h1><p>${S.players} people are in · waiting for the start</p></div>`;
   else if(S.phase==='casting'){h+=`<h2>Who should fight? Vote for your favorite!</h2><div class="cards">${S.roster.map(c=>`<div class="card ${y.vote===c.id?'sel':''}" onclick="vote('${c.id}')"><div class="im">${pic(c,BR.duo(c.id))}</div><div class="cp"><b>${c.name}</b><small>${c.tagline}</small></div></div>`).join('')}</div><p style="text-align:center">The two most voted characters will fight.</p>`}
   else if(S.phase==='generating'){h+=`<h2>The fighters are ready! Pick who you push for</h2>${sideCards(y)}<p style="text-align:center">You can switch sides any time (every 3 seconds).</p>`}
   else if(S.phase==='fight'){
@@ -95,4 +99,5 @@ function taunt(tid){post('/api/taunt',{tid});navigator.vibrate&&navigator.vibrat
 function tap(e){e.preventDefault();pending++;if(S&&S.you)S.you.taps++;navigator.vibrate&&navigator.vibrate(8);const s=document.querySelector('#tap small');if(s)s.textContent=S.you.taps+' taps'}
 setInterval(()=>{if(pending){const n=pending;pending=0;post('/api/tap',{n})}},400);
 join();
+if(new URLSearchParams(location.search).has('fx'))document.body.classList.add('fx');
 </script></body></html>

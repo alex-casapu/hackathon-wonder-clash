@@ -2,7 +2,7 @@
 // Lines without audio still show as subtitles.  action: 'tap' (double taps) | 'taunt' (double taunt power)  team: 'A' | 'B' | 'both'
 // Corners: pink = left fighter (A), cyan = right fighter (B).
 export const HOST = {
-  intro: [{ t: '[shouting, excited] WELCOME to the weirdest fight night on Earth! [laughs] Tonight... YOU decide who wins!' }],
+  intro: [{ t: '[shouting, excited] WELCOME to GlitchOut Fighter! [laughs] Tonight... YOU decide who wins!' }],
   call_tap: [
     { t: '[shouting] EVERYBODY! Smash that button! [laughs] Hit it like it owes you MONEY!', action: 'tap', team: 'both', call: 'TAP STORM! Double taps!' },
     { t: '[shouting] Tap tap tap TAP! Faster! [shouting] FASTER!', action: 'tap', team: 'both', call: 'TAP STORM! Double taps!' },
@@ -35,3 +35,14 @@ export const TAUNTS = [
 ];
 // Announcements are built from the roster (so each fighter is introduced by name).
 export const announce = (corner, c) => `[shouting, excited] ${corner === 'A' ? 'In the PINK corner' : 'And in the CYAN corner'}... [dramatic pause] ${c.name}! [excited] ${c.tagline}`;
+
+// Commentary for the recorded (replay) match. No damage numbers, so each line is generated once and cached forever.
+export const replayReaction = (W, Lz) => [
+  `[shouting] OH! [gasps] ${W.name} lands ${W.special}! ${Lz.name} is in trouble!`,
+  `[shouting, amazed] OH MY! ${W.special} from ${W.name}! [laughs] ${Lz.name} did NOT see that coming!`,
+  `[excited] WHAT a hit! ${W.name} blasts ${Lz.name} with ${W.special}!`,
+];
+export const finaleLines = (w) => [
+  `[shouting, ecstatic] IT IS OVER! [gasps] ${w.name} takes the match! WHAT a fight!`,
+  `[shouting] AND THAT IS THE KNOCKOUT! [laughs] ${w.name} wins it ALL!`,
+];

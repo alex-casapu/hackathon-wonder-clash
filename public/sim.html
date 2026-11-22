@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Weird Wrestling — Crowd simulator</title>
+<title>GlitchOut Fighter — Crowd simulator</title>
 <style>
 :root{--bg:#0a0612;--fg:#f6f3ff;--mut:#9a8fba;--A:#ff3fa4;--B:#00f0ff}
 *{box-sizing:border-box}
@@ -56,13 +56,11 @@ function build(n){
     $('wall').appendChild(el);u.el=el;u.bd=el.querySelector('.bd');u.tc=el.querySelector('.tc');u.tp=el.querySelector('.tp');users.push(u);
   }
 }
-function enter(){
-  N=Number($('n').value)||30;if(users.length!==N)build(N);
-  const now=Date.now();users.forEach(u=>{u.joinAt=now+rand(0,8000);u.sent=false}); // people scan the QR gradually
-  joined=true;
+function enter(){ // the virtual phones live on the server now: ask it to spawn them (they join gradually, like people scanning the QR)
+  N=Number($('n').value)||30;fetch('/admin/crowd?n='+N).catch(()=>{});
 }
 const es=new EventSource('/sim-events');
-es.onmessage=e=>{S=JSON.parse(e.data);by={};S.players.forEach(p=>by[p.id]=p);
+es.onmessage=e=>{S=JSON.parse(e.data);by={};S.players.forEach(p=>by[p.id]=p);if(S.players.length>users.length){N=S.players.length;build(N)}
   if(S.phase==='casting'&&prevPhase!=='casting')epoch++;
   prevPhase=S.phase;draw()};
 
@@ -111,5 +109,5 @@ setInterval(()=>{
   if(acts.length)fetch('/api/sim/act',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acts})}).catch(()=>{});
 },300);
 setInterval(()=>{hype.A=rand(.6,1.3);hype.B=rand(.6,1.3)},4000); // each side's mood swings
-build(N);$('n').value=N;if(Q.has('auto'))setTimeout(enter,300);
+build(N);$('n').value=N;
 </script></body></html>
