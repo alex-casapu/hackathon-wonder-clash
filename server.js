@@ -31,6 +31,17 @@ const MOVE_BEATS = { attacco: 'speciale', speciale: 'guardia', guardia: 'attacco
 const CORNER = { A: 'Pink', B: 'Cyan' };
 
 // ---------- state ----------
+// ---------- match recorder: what was shown and heard, and when. scripts/render_match.py turns it into a video file ----------
+let REC = null, lastCast = null;
+const hudNow = () => ({ A: { id: S.teams.A.char?.id, name: S.teams.A.char?.name, hp: Math.round(S.teams.A.hp), maxhp: S.teams.A.maxhp }, B: { id: S.teams.B.char?.id, name: S.teams.B.char?.name, hp: Math.round(S.teams.B.hp), maxhp: S.teams.B.maxhp } });
+function recStart() { REC = { id: new Date().toISOString().replace(/[:.]/g, '-'), t0: Date.now(), game: 'GlitchOut Fighter', cast: lastCast, events: [] }; recEv({ type: 'hud', beat: 0, ...hudNow() }); }
+function recEv(e) { if (REC) REC.events.push({ t: Date.now() - REC.t0, ...e }); }
+function recSave() {
+  if (!REC) return; recEv({ type: 'result', winner: S.winner, mvp: S.mvp, ...hudNow() });
+  const dir = path.join(ROOT, 'media', 'recordings', REC.id); fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'timeline.json'), JSON.stringify(REC, null, 1));
+  log(`[rec] match saved: media/recordings/${REC.id}/timeline.json  (render it: python3 scripts/render_match.py media/recordings/${REC.id}/timeline.json)`); REC = null;
+}
 let S, players = new Map(), clients = new Set(), timer = null, runId = 0, videoSeq = 0, sayN = 0, fxN = 0, sayAt = 0, retortAt = 0;
 const newSide = () => ({ char: null, hp: 100, maxhp: 100, stats: null, tapsBeat: 0, charge: 0, tilt: 0 });
 function fresh() {
@@ -119,27 +130,28 @@ function say(event, force = false) {
   const arr = HOST[event]; if (!arr) return;
   let l = rnd(arr); if (arr.length > 1 && l.t === lastLine[event]) l = arr.find((x) => x.t !== lastLine[event]);
   lastLine[event] = l.t; sayAt = now;
-  if (l.action) S.call = { type: l.action, team: l.team, text: l.call, until: now + CALL_MS, seq: sayN + 1 }; // the call-out starts at once
+  if (l.action) { S.call = { type: l.action, team: l.team, text: l.call, until: now + CALL_MS, seq: sayN + 1 }; recEv({ type: 'call', text: l.call }); } // the call-out starts at once
   speak('host', 'host', l.t);
 }
 const charSay = (team, key) => { const c = S.teams[team].char; if (c) { sayAt = Date.now(); speak(c.voice, team, c.lines[key]); } };
 // Speech is AUDIO ONLY (no subtitles anywhere). who = 'host' | 'A' | 'B'. Cached audio plays at once; otherwise the line is
 // generated now (once, ~2-3s, then cached forever). `prep` is an already-running ensure() started earlier (live commentary).
 function speak(voiceKey, who, text, prep) {
-  const show = (url) => { S.says.push({ seq: ++sayN, who, url }); if (S.says.length > 8) S.says.shift(); push(); };
+  const show = (url) => { recEv({ type: 'say', who, url }); S.says.push({ seq: ++sayN, who, url }); if (S.says.length > 8) S.says.shift(); push(); };
   const url = audio.cachedUrl(voiceKey, text);
   if (url || !L.voice || !media.live()) return show(url);
   Promise.race([prep || audio.ensure(voiceKey, text), sleep(4500).then(() => null)]).then(show);
 }
 // ---- live commentary: the host's lines are composed from what is actually happening, then voiced ----
 const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
-function planReaction(r) {
+function planReaction(r, shown) {
   const a = S.teams.A, b = S.teams.B, ca = a.char, cb = b.char;
   const ha = Math.max(0, a.hp - r.dB), hb = Math.max(0, b.hp - r.dA);
   if (r.beat === BEATS) { const w = r.cls === 'A' ? ca : cb; return pickOne([`[shouting, ecstatic] IT IS OVER! [gasps] ${w.name} takes the match! WHAT a fight!`, `[shouting] AND THAT IS THE KNOCKOUT! [laughs] ${w.name} wins it ALL!`]); }
   if (r.win === 'tie') return pickOne([`[gasps] They COLLIDE in the middle! [shouting] ${ca.name} against ${cb.name}, and nobody gives an inch!`, `[excited] WOW, a perfect clash! ${ca.name} and ${cb.name} are trading blows!`]);
   const W = r.win === 'A' ? ca : cb, Lc = r.win === 'A' ? cb : ca, dmg = r.win === 'A' ? r.dA : r.dB, lhp = r.win === 'A' ? hb : ha, mv = r.win === 'A' ? r.ma : r.mb;
-  const what = mv === 'speciale' ? W.special : mv === 'attacco' ? 'a brutal strike' : 'a perfect counter';
+  const kind = shown ? shown.kind : (mv === 'speciale' ? 'special' : mv === 'attacco' ? 'attack' : 'counter'); // describe what the clip shows
+  const what = kind === 'special' ? W.special : kind === 'attack' ? pickOne(['a brutal strike', 'a crushing blow', 'a vicious combo']) : pickOne(['a perfect counter', 'a razor-sharp counter', 'a counter out of nowhere']);
   let t = pickOne([`[shouting] OH! [gasps] ${W.name} lands ${what}! ${dmg} damage! ${Lc.name} is down to ${lhp}!`, `[shouting, amazed] OH MY! ${what} from ${W.name}! [laughs] ${Lc.name} has only ${lhp} left!`, `[excited] WHAT a hit! ${W.name} uses ${what} for ${dmg}! [gasps] ${Lc.name} drops to ${lhp}!`]);
   if (lhp / (r.win === 'A' ? b.maxhp : a.maxhp) < 0.3) t += ` [worried, breathless] ${Lc.name} is in SERIOUS trouble!`;
   return t;
@@ -165,6 +177,7 @@ function endCasting() { // the two most voted characters fight; everyone then ba
   const A = S.teams.A.char, B = S.teams.B.char;
   for (const p of players.values()) p.team = p.kbd ? p.id.slice(-1) : p.vote === A.id ? 'A' : p.vote === B.id ? 'B' : null;
   for (const p of players.values()) if (!p.team) p.team = smallerSide(); // everyone else: the side with fewer fans
+  lastCast = { A: A.id, B: B.id, votes: ROSTER.map((c) => ({ id: c.id, name: c.name, votes: v[c.id] || 0 })) };
   log(`[cast] ${A.name} vs ${B.name} (votes ${v[A.id] || 0} / ${v[B.id] || 0})`);
   startGenerating();
 }
@@ -214,17 +227,19 @@ function applyBeat(r) {
   b.hp = Math.max(0, b.hp - r.dA); a.hp = Math.max(0, a.hp - r.dB);
   a.charge = r.ca; b.charge = r.cb; a.tilt *= 0.5; b.tilt *= 0.5; // taunts wear off
   S.last = { beat: r.beat, ma: r.ma, mb: r.mb, win: r.win, dA: r.dA, dB: r.dB, ca: r.ca, cb: r.cb };
+  recEv({ type: 'hud', beat: r.beat, ...hudNow() });
 }
-function playClip(c) { S.video = { seq: ++videoSeq, url: c ? c.url : null }; S.next = null; push(); }
+function playClip(c) { recEv({ type: 'clip', url: c ? c.url : null, beat: S.beat }); S.video = { seq: ++videoSeq, url: c ? c.url : null }; S.next = null; push(); }
 
 async function runFight() {
   const id = runId, alive = () => id === runId && S.phase === 'fight';
   const A = S.teams.A.char, B = S.teams.B.char;
-  setPhase('fight'); S.beat = 0; S.last = null; S.winner = null;
+  setPhase('fight'); S.beat = 0; S.last = null; S.winner = null; recStart();
   let useVideo = !!S.intro, len = useVideo ? INTRO_MS : CLIP_MS, P = Date.now(); // P = start of the clip now on screen
   playClip(S.intro);
   const classes = () => (L.economy ? ['A', 'B'] : ['A', 'B', 'tie']);
-  let branches = useVideo ? media.branchClips(S.intro, classes(), A, B, false, 0) : null;
+  const deck = media.newDeck(); // random set pieces, cameras, street events and endings: every match tells a different story
+  let branches = useVideo ? media.branchClips(S.intro, classes(), A, B, false, 0, deck.plan(0)) : null;
   // the host introduces the fighters, then each says their catchphrase
   [[800, () => { sayAt = Date.now(); speak('host', 'host', announce('A', A)); }], [4200, () => { sayAt = Date.now(); speak('host', 'host', announce('B', B)); }],
     [7600, () => charSay('A', 'entrance')], [10600, () => charSay('B', 'entrance')]].forEach(([ms, fn]) => setTimeout(() => alive() && S.beat === 1 && fn(), ms));
@@ -255,10 +270,11 @@ async function runFight() {
       if (clip) { S.next = { seq: videoSeq + 1, url: clip.url }; push(); }
       media.cancelBranches(branches, r.cls); // unchosen branches: cancel if still queued (refunded)
     }
+    const shown = branches && branches._meta ? (branches._meta[r.cls] || null) : null; // which move the chosen clip actually shows
     // chain on immediately: next branches start from this clip's last frame, while it is still waiting to play
-    branches = clip && k < BEATS ? media.branchClips(clip, k + 1 === BEATS ? ['A', 'B'] : classes(), A, B, k + 1 === BEATS, k) : null;
+    branches = clip && k < BEATS ? media.branchClips(clip, k + 1 === BEATS ? ['A', 'B'] : classes(), A, B, k + 1 === BEATS, k, deck.plan(k)) : null;
     // live commentary: compose the line now and start voicing it, so the audio is ready when the clip starts
-    const plan = planReaction(r), prep = L.voice && !audio.cachedUrl('host', plan) ? audio.ensure('host', plan) : null;
+    const plan = planReaction(r, shown), prep = L.voice && !audio.cachedUrl('host', plan) ? audio.ensure('host', plan) : null;
     await sleepUntil(P + len); if (!alive()) return;
     applyBeat(r); if (k === BEATS) S.winner = r.cls;
     P = Date.now(); len = CLIP_MS;
@@ -275,7 +291,7 @@ function finish() {
   if (!S.winner) S.winner = a.hp === b.hp ? (a.charge >= b.charge ? 'A' : 'B') : a.hp > b.hp ? 'A' : 'B';
   const top = [...players.values()].sort((x, y) => y.taps - x.taps)[0];
   S.mvp = top ? { team: top.team, taps: top.taps, bot: top.bot } : null;
-  S.beatPhase = null; setPhase('result'); media.cancelAll(); say('outro', true);
+  S.beatPhase = null; setPhase('result'); recSave(); media.cancelAll(); say('outro', true);
 }
 
 // ---------- actions ----------
@@ -298,7 +314,7 @@ function doTaunt(p, tid) { // insult the other fighter: it gets flustered (tilt)
   p.tauntAt = now;
   const target = p.team === 'A' ? 'B' : 'A', mult = callActive('taunt', p.team) ? 2 : 1;
   S.teams[target].tilt = Math.min(0.3, S.teams[target].tilt + 0.02 * mult);
-  S.fx = { seq: ++fxN, type: 'taunt', from: p.team }; // on screen: just an icon, no text
+  S.fx = { seq: ++fxN, type: 'taunt', from: p.team }; recEv({ type: 'taunt', from: p.team }); // on screen: just an icon, no text
   if (now - retortAt >= 9000) { // the fighter you back shouts the insult in their own voice, then the other one answers
     retortAt = now; sayAt = now;
     const me = S.teams[p.team].char; speak(me.voice, p.team, `[sneering, mocking] ${ins.text}`);

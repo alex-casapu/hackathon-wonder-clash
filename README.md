@@ -51,6 +51,13 @@ node server.js           # --fast = voto più corto per le prove (il video è se
 
 Intro R2V con i due ritratti, poi ogni round è un I2V che parte dall'ultimo fotogramma del precedente. Mentre una clip va in onda il server prepara le continuazioni possibili (2 in modalità Economy, 3 altrimenti: vince A / vince B / pareggio); al voto parte quella giusta. Se tarda più di 4s parte un ramo già pronto e l'esito si adegua al video. Nel finale non si scambia mai il vincitore.
 
+## Varietà dei combattimenti
+
+Ogni partita pesca da un "mazzo" (`newDeck` in `media.js`), senza ripetizioni finché il mazzo non finisce: **scena** (inseguimento, tuffo dal furgone, lampione come arma, scontro di colpi, contromossa, duello in aria, corsa sul muro, presa e lancio, imboscata, carica nel vapore), **camera** (whip pan, drone, orbita, a terra, crash-zoom...), **evento della strada** (12), **come perde chi perde** (7), **gesto di chi vince** (6), **colpo di grazia** nel finale (4).
+- Ogni round ha un ruolo nella storia: apertura, escalation, caos, disperazione, climax. Le tre possibili conclusioni di un round (vince rosa, vince ciano, pareggio) mostrano la stessa scena con esiti diversi.
+- La clip mostra a caso una **mossa speciale**, un **colpo normale** o una **contromossa**; ogni personaggio ha 3 colpi e 2 contromosse in `roster.js`. Il cronista descrive quello che la clip mostra davvero.
+- Intro diversa a ogni partita. Per vedere i prompt di una partita finta senza spendere: `node scripts/showprompts.mjs seraph mercury`.
+
 ## Costi (misurati)
 
 Ritratto 0,004 $ · frase di voce 0,065 $ (cache su disco, una volta sola) · clip 13s circa 0,195 $. Costo previsto per partita in Economy: circa 2,6 $ (intro + 12 clip). I ritratti sono generati una volta per stile in `media/roster/<stile>/`.
