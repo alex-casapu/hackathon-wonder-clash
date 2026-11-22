@@ -35,14 +35,3 @@ export const TAUNTS = [
 ];
 // Announcements are built from the roster (so each fighter is introduced by name).
 export const announce = (corner, c) => `[shouting, excited] ${corner === 'A' ? 'In the PINK corner' : 'And in the CYAN corner'}... [dramatic pause] ${c.name}! [excited] ${c.tagline}`;
-
-// Commentary for the recorded (replay) match. No damage numbers, so each line is generated once and cached forever.
-export const replayReaction = (W, Lz) => [
-  `[shouting] OH! [gasps] ${W.name} lands ${W.special}! ${Lz.name} is in trouble!`,
-  `[shouting, amazed] OH MY! ${W.special} from ${W.name}! [laughs] ${Lz.name} did NOT see that coming!`,
-  `[excited] WHAT a hit! ${W.name} blasts ${Lz.name} with ${W.special}!`,
-];
-export const finaleLines = (w) => [
-  `[shouting, ecstatic] IT IS OVER! [gasps] ${w.name} takes the match! WHAT a fight!`,
-  `[shouting] AND THAT IS THE KNOCKOUT! [laughs] ${w.name} wins it ALL!`,
-];

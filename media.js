@@ -20,7 +20,7 @@ export const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'medi
 const BASE = 'https://api.machgen.ai/api/v0';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const key = () => process.env.MACHGEN_API_KEY;
-export const live = () => !!key() && !L.mock && process.env.MOCK !== '1' && !process.argv.includes('--mock');
+export const live = () => !!key(); // there is no mock mode: video is always generated for real
 
 const IMG_MODEL = process.env.IMG_MODEL || 'FLUX.2-dev';
 const VID_MODEL = process.env.VID_MODEL || 'MiniMax-H3-Turbo';

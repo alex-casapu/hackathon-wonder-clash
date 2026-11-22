@@ -47,12 +47,10 @@ a{color:#9ad}
   <div class="row"><b style="font-size:15px">Presenter console</b>
     <span class="mut">virtual users</span><input id="dn" type="number" value="40" min="5" max="150" style="width:70px">
     <button class="go big" onclick="runDemo('live')">&#9654; Run LIVE demo</button>
-    <button class="dim" onclick="adm('crowd?n='+$('dn').value)">+ crowd only</button><button class="dim" onclick="adm('crowdstop')">remove crowd</button>
+    <label><input type="checkbox" id="dfast"> faster vote</label><button class="dim" onclick="adm('crowd?n='+$('dn').value)">+ crowd only</button><button class="dim" onclick="adm('crowdstop')">remove crowd</button>
     <span class="grow"></span><span class="mut" id="demostate"></span></div>
   <div class="mut">One click: clears the stage, brings in the virtual phones, opens the vote, then plays the whole match with real generated video and voices (about $3 per match). The projector uses <a href="/screen" target="_blank">/screen</a>; the preview below is silent.</div>
   <div class="row" style="margin-top:6px"><button class="dim" id="pf-btn" onclick="preflight()">Check everything is ready</button><span id="pf" class="mut"></span></div>
-  <details style="margin-top:4px"><summary class="mut" style="cursor:pointer">Rehearsal options (not live)</summary>
-    <div class="row"><label><input type="checkbox" id="dfast"> fast timings</label><button class="dim" onclick="runDemo('replay')">Rehearse with a recorded match (free, NOT live)</button><span class="mut">only for testing the flow; it plays old video</span></div></details>
   <div class="stage"><div><span class="tag">screen preview (muted)</span><iframe src="/screen?mute=1&nodock=1"></iframe></div><div><span class="tag">virtual crowd</span><iframe src="/sim?embed=1&view=1"></iframe></div></div>
 </div>
 <div class="grid">
@@ -89,8 +87,7 @@ a{color:#9ad}
   <div class="mut">On the screen page the same works from the keyboard: pink A / Q W E / Z, cyan L / I O P / M.</div></div>
 
 <div class="card"><h3>5 · Modes & cost</h3>
-  <div class="row"><button id="m-live" onclick="adm('mock?on=0')">LIVE (paid)</button><button id="m-mock" onclick="adm('mock?on=1')">REPLAY (free)</button> <span class="mut">switches instantly, no restart</span></div>
-  <div class="row"><label><input type="checkbox" id="eco"> Economy (2 branches/round)</label></div>
+    <div class="row"><label><input type="checkbox" id="eco"> Economy (2 branches/round)</label></div>
   <div class="row"><label><input type="checkbox" id="aud"> Sound inside clips</label></div>
   <div class="row"><label><input type="checkbox" id="voi"> Auto-generate voice lines</label></div>
   <div class="row">cap $ <input id="cap" type="number" min="0" step="1" style="width:64px"> <button onclick="adm('cap?usd='+$('cap').value)">Set</button></div>
@@ -116,7 +113,7 @@ function speak(){const t=$('stxt').value.trim();if(!t)return;if(confirm('Generat
 $('force').querySelectorAll('button').forEach(b=>b.onclick=()=>adm('force?win='+b.dataset.w));
 $('eco').onchange=e=>adm('economy?on='+(e.target.checked?1:0));$('aud').onchange=e=>adm('audio?on='+(e.target.checked?1:0));$('voi').onchange=e=>adm('voice?on='+(e.target.checked?1:0));
 function runDemo(mode){
-  adm(`rundemo?n=${$('dn').value}&mode=${mode}&fast=${$('dfast')&&$('dfast').checked?1:0}`).then(r=>{if(r&&r.ok===0)alert('Paid calls are halted. Press Resume first.')});
+  adm(`rundemo?n=${$('dn').value}&fast=${$('dfast')&&$('dfast').checked?1:0}`).then(r=>{if(r&&r.ok===0)alert('Paid calls are halted. Press Resume first.')});
 }
 function preflight(){fetch(q('/admin/preflight')).then(r=>r.json()).then(d=>{const bad=d.checks.filter(x=>!x.ok);
   $('pf').innerHTML=(bad.length?`<b class="bad">${bad.length} problem${bad.length>1?'s':''}</b>`:'<b class="ok">READY FOR LIVE</b>')+'<br>'+d.checks.map(x=>`<span class="${x.ok?'ok':'bad'}">${x.ok?'✔':'✖'}</span> ${x.name}: ${x.detail}`).join('<br>')}).catch(()=>{})}
@@ -124,8 +121,7 @@ let built=false;
 function draw(){
   const pct=D.cap?Math.min(100,100*D.spent/D.cap):0;
   $('c-phase').innerHTML=`<b>${D.phase}</b>${D.phase==='fight'?' · round '+D.beat+' · '+D.beatPhase:''}`;
-  $('c-mode').innerHTML=D.live?'<b class="ok">LIVE</b>':'<b class="bad">NOT LIVE</b>';
-  const lw=$('livewarn');if(!D.live){lw.style.display='block';lw.innerHTML=`NOT LIVE — ${D.notLive}  <button class="go" onclick="adm('mock?on=0')">Switch to LIVE</button>`}else if(D.liveError){lw.style.display='block';lw.textContent=D.liveError}else lw.style.display='none';
+  $('c-mode').innerHTML='<b class="ok">LIVE</b>';const lw=$('livewarn');if(D.liveError){lw.style.display='block';lw.textContent=D.liveError}else lw.style.display='none';
   $('c-sp').textContent='$'+D.spent.toFixed(2);$('c-cap').textContent='$'+D.cap;$('c-players').innerHTML=`<b>${D.players}</b> players · ${D.sim} sim · ${D.bots} bots`;$('demostate').textContent=D.crowd?`${D.crowd} virtual phones on the server`:'no virtual crowd yet';
   $('stop').className=D.halted?'halted':'';$('stop').textContent=D.halted?'⛔ STOPPED':'⛔ STOP ALL';$('banner').style.display=D.halted?'block':'none';
   if(!built){built=true;const opt=D.rosterList.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');$('qa').innerHTML=opt;$('qb').innerHTML=opt;$('qb').selectedIndex=1;
@@ -135,7 +131,7 @@ function draw(){
   const F=D.fighters;for(const [k,id] of [['A','fa'],['B','fb']]){const f=F[k];$(id).textContent=f.name?`${f.name} · ${f.n} fans`:'—';$(id+'-hp').style.width=f.name?100*f.hp/f.maxhp+'%':'0';$(id+'-ch').style.width=100*f.charge+'%';$(id+'-t').textContent=f.name?`HP ${f.hp}/${f.maxhp} · charge ${f.charge} · tilt ${f.tilt}`:''}
   $('forcetxt').textContent=D.forceWin?`→ forced: ${D.forceWin==='tie'?'clash':D.forceWin==='A'?'pink wins':'cyan wins'} (once)`:'→ decided by the votes';
   $('force').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.w===(D.forceWin||'')));
-  $('nb').textContent=D.bots;$('m-live').className=D.live?'go on':'dim';$('m-mock').className=!D.live?'warn on':'dim';
+  $('nb').textContent=D.bots;
   $('eco').checked=D.economy;$('aud').checked=D.audio;$('voi').checked=D.voice;
   $('kinds').innerHTML='<table>'+Object.entries(D.byKind).map(([k,v])=>`<tr><td>${k}</td><td>${v.n}</td><td>$${v.usd.toFixed(3)}</td></tr>`).join('')+'</table>';
   $('proj').textContent=`Projected per match: ~$${D.projected} (intro + ${D.branchN} clips). Voice lines are extra, ~$0.03 each the first time.`;

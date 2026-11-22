@@ -7,18 +7,22 @@ import { exec, execFile } from 'node:child_process';
 import QRCode from 'qrcode';
 import * as media from './media.js';
 import * as audio from './audio.js';
-import { HOST, TAUNTS, announce, replayReaction, finaleLines } from './lines.js';
+import { HOST, TAUNTS, announce } from './lines.js';
 import { ROSTER, byId, pub, imgMissing, STYLES, styleId, setStyle, styleGallery } from './roster.js';
 import { L, EST, spent, byKind, log } from './ledger.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 try { process.loadEnvFile(path.join(ROOT, '.env')); } catch {}
+if (!process.env.MACHGEN_API_KEY) { // GlitchOut Fighter is LIVE only: there is no mock and no placeholder mode
+  console.error(`\n  GlitchOut Fighter needs a MachGen key to generate the video.\n  There is no MACHGEN_API_KEY in ${path.join(ROOT, '.env')}\n  (every checkout / worktree needs its own .env: copy .env.example to .env and fill it in).\n`);
+  process.exit(1);
+}
 let PORT = Number(process.env.PORT || 3000);
 const FAST = process.env.FAST === '1' || process.argv.includes('--fast');
-const T = { cast: FAST ? 12e3 : 25e3, introMax: 45e3, mockBeat: FAST ? 8e3 : 15e3 };
+const T = { cast: FAST ? 12e3 : 25e3, introMax: 45e3 };
 const BEATS = 6, TAP_REF = 20, TAP_CAP = 60, LOCK_MS = 1500, HOLD_MAX_MS = 4000, CALL_MS = 7000, TAUNT_CD = 3000, SIDE_CD = 3000;
 const CLIP_MS = media.CLIP_SECS * 1000, INTRO_MS = media.INTRO_SECS * 1000;
-let server; // beat length without generated video = T.mockBeat
+let server;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sleepUntil = (t) => sleep(Math.max(0, t - Date.now()));
 const rnd = (a) => a[Math.floor(Math.random() * a.length)];
@@ -26,27 +30,12 @@ const MOVES = ['attacco', 'guardia', 'speciale'];   // internal ids: attack / gu
 const MOVE_BEATS = { attacco: 'speciale', speciale: 'guardia', guardia: 'attacco' };
 const CORNER = { A: 'Pink', B: 'Cyan' };
 
-// ---------- recorded match (replay): real clips from a LIVE run, played free of charge when we are not LIVE ----------
-const REPLAY_DIR = path.join(ROOT, 'media', 'replay');
-let REPLAY = null; try { REPLAY = JSON.parse(fs.readFileSync(path.join(REPLAY_DIR, 'manifest.json'), 'utf8')); } catch {}
-const replayOn = () => !!REPLAY && !media.live();
-const replayClip = (i) => { const c = REPLAY && REPLAY.clips[i]; return c ? { url: `/media/replay/${c.file}`, file: null } : null; };
-function replayBranches(k) { // same shape as media.branchClips; whatever outcome is asked for, the recorded next clip comes back (the outcome is forced to match it)
-  const out = {}; Object.defineProperty(out, '_recs', { value: {}, enumerable: false });
-  const clip = replayClip(k + 1); for (const c of ['A', 'B', 'tie']) out[c] = Promise.resolve(clip);
-  return out;
-}
-function applyReplayFighters() { // the recorded video shows these two, so these two fight
-  const a = byId(REPLAY.fighters.A), b = byId(REPLAY.fighters.B);
-  [[S.teams.A, a], [S.teams.B, b]].forEach(([x, c]) => { x.char = c; x.hp = x.maxhp = c.stats.hp; x.stats = { atk: c.stats.atk, spec: c.stats.spec }; });
-}
-
 // ---------- state ----------
 let S, players = new Map(), clients = new Set(), timer = null, runId = 0, videoSeq = 0, sayN = 0, fxN = 0, sayAt = 0, retortAt = 0;
 const newSide = () => ({ char: null, hp: 100, maxhp: 100, stats: null, tapsBeat: 0, charge: 0, tilt: 0 });
 function fresh() {
   runId++; media.cancelAll(); // a reset also drops any task that is still queued
-  S = { phase: 'lobby', ends: 0, beat: 0, beatPhase: null, last: null, winner: null, mvp: null, teams: { A: newSide(), B: newSide() }, gen: 'idle', replay: false, liveError: null, forceWin: null, video: { seq: 0, url: null }, next: null, intro: null, live: false, says: [], call: null, fx: null };
+  S = { phase: 'lobby', ends: 0, beat: 0, beatPhase: null, last: null, winner: null, mvp: null, teams: { A: newSide(), B: newSide() }, gen: 'idle', liveError: null, forceWin: null, video: { seq: 0, url: null }, next: null, intro: null, live: false, says: [], call: null, fx: null };
   for (const p of players.values()) { p.vote = null; p.team = null; p.taps = 0; p.tapsBeat = 0; p.move = null; p.tauntAt = 0; }
 }
 fresh();
@@ -92,8 +81,8 @@ function dbgSnap() {
     inflight: L.inflight.size, projected: +projected.toFixed(2), branchN, stats: { holds: L.stats.holds, fallbacks: L.stats.fallbacks, avgBranch: br.length ? +(br.reduce((a, b) => a + b, 0) / br.length).toFixed(1) : null, maxBranch: br.length ? +Math.max(...br).toFixed(1) : null },
     audioMissing: { n: miss.length, est: +(miss.length * EST.tts).toFixed(2) }, roster: { have: ROSTER.length - rm.length, total: ROSTER.length, est: +(rm.length * EST.image).toFixed(3) },
     style: styleId(), styles: Object.entries(STYLES).map(([id, s]) => [id, s.name]),
-    replay: replayOn(), replayAvail: !!REPLAY, replayFighters: REPLAY ? REPLAY.fighters : null, liveError: S.liveError, notLive: media.live() ? null : (!process.env.MACHGEN_API_KEY ? 'There is no MACHGEN_API_KEY in .env, so no video can be generated.' : (L.mock ? 'You switched to REPLAY (recorded video). Press LIVE to go back.' : 'Mock flag set at startup (--mock or MOCK=1).')),
-    crowd: crowd.size, fast: T.cast <= 12e3, mock: L.mock, forceWin: S.forceWin, castSecs: T.cast / 1000, bots: [...players.values()].filter((x) => x.bot).length, adminPin: !!process.env.ADMIN_PIN,
+    liveError: S.liveError,
+    crowd: crowd.size, fast: T.cast <= 12e3, forceWin: S.forceWin, castSecs: T.cast / 1000, bots: [...players.values()].filter((x) => x.bot).length, adminPin: !!process.env.ADMIN_PIN,
     rosterList: ROSTER.map((c) => ({ id: c.id, name: c.name })), taunts: TAUNTS.map((t) => t.id),
     fighters: { A: fighterDbg('A'), B: fighterDbg('B') }, hostEvents: Object.keys(HOST),
     items: L.items.slice(-30).reverse().map((r) => ({ n: r.n, kind: r.kind, label: r.label, usd: +(r.actual ?? r.est).toFixed(3), real: r.actual != null, status: r.status, age: Math.round((Date.now() - r.t0) / 1000) })),
@@ -106,7 +95,7 @@ async function preflight() { // is everything in place for a LIVE demo? (never r
   const ffmpeg = await new Promise((r) => execFile('ffmpeg', ['-version'], (e) => r(!e)));
   const rm = imgMissing();
   return [
-    ck('Mode is LIVE', media.live(), media.live() ? 'real video, real voices' : 'NOT LIVE: ' + (!process.env.MACHGEN_API_KEY ? 'no MACHGEN_API_KEY in .env' : L.mock ? 'switched to replay' : 'mock flag at startup')),
+    ck('Mode is LIVE', true, 'real video, real voices'),
     ck('MachGen key (video)', !!process.env.MACHGEN_API_KEY, process.env.MACHGEN_API_KEY ? 'present' : 'missing in .env'),
     ck('ElevenLabs key (voices)', audio.provider() === 'elevenlabs', audio.provider() === 'elevenlabs' ? 'present: character voices' : 'missing: flat fallback voices'),
     ck('ffmpeg (chains the clips)', ffmpeg, ffmpeg ? 'installed' : 'NOT FOUND: install it with: brew install ffmpeg'),
@@ -144,11 +133,6 @@ function speak(voiceKey, who, text, prep) {
 }
 // ---- live commentary: the host's lines are composed from what is actually happening, then voiced ----
 const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
-function planReplayReaction(r) {
-  const ca = S.teams.A.char, cb = S.teams.B.char;
-  if (r.beat === BEATS) return pickOne(finaleLines(r.cls === 'A' ? ca : cb));
-  return pickOne(replayReaction(r.cls === 'A' ? ca : cb, r.cls === 'A' ? cb : ca));
-}
 function planReaction(r) {
   const a = S.teams.A, b = S.teams.B, ca = a.char, cb = b.char;
   const ha = Math.max(0, a.hp - r.dB), hb = Math.max(0, b.hp - r.dA);
@@ -178,7 +162,6 @@ function startCasting() { // everyone votes for the character they like most
 function endCasting() { // the two most voted characters fight; everyone then backs one of them
   const v = voteCounts(), order = [...ROSTER].sort(() => Math.random() - 0.5).sort((a, b) => (v[b.id] || 0) - (v[a.id] || 0));
   [S.teams.A, S.teams.B].forEach((x, i) => { const c = order[i]; x.char = c; x.hp = x.maxhp = c.stats.hp; x.stats = { atk: c.stats.atk, spec: c.stats.spec }; });
-  if (replayOn()) { const was = `${S.teams.A.char.name} vs ${S.teams.B.char.name}`; applyReplayFighters(); if (was !== `${S.teams.A.char.name} vs ${S.teams.B.char.name}`) log(`[replay] the recorded fight is ${S.teams.A.char.name} vs ${S.teams.B.char.name} (the vote picked ${was})`); }
   const A = S.teams.A.char, B = S.teams.B.char;
   for (const p of players.values()) p.team = p.kbd ? p.id.slice(-1) : p.vote === A.id ? 'A' : p.vote === B.id ? 'B' : null;
   for (const p of players.values()) if (!p.team) p.team = smallerSide(); // everyone else: the side with fewer fans
@@ -189,14 +172,14 @@ async function startGenerating() {
   const id = runId, A = S.teams.A.char, B = S.teams.B.char;
   setPhase('generating'); S.gen = 'working';
   const t0 = Date.now(); media.prewarmRefs([A, B]);
-  if (media.live()) {
-    S.intro = await Promise.race([media.introClip(A, B), sleep(T.introMax).then(() => null)]);
-    if (!S.intro) { S.liveError = 'The intro video could not be generated, so this match has no video. Check the log, then Reset and run it again.'; log('[LIVE] intro video failed: ' + S.liveError); }
-  } else if (REPLAY) { await sleep(2500); S.intro = replayClip(0); S.replay = true; }
-  else await sleep(3500);
+  S.intro = await Promise.race([media.introClip(A, B), sleep(T.introMax).then(() => null)]);
   if (id !== runId) return;
+  if (!S.intro) { // never fall back to pictures: tell the operator and go back to the lobby
+    log('[LIVE] the intro video could not be generated: the match is cancelled');
+    fresh(); S.liveError = 'The intro video could not be generated, so the match was cancelled. Check the log and press Run LIVE demo again.'; setPhase('lobby'); return;
+  }
   S.gen = 'done'; S.live = !!S.intro;
-  log(`[gen] ready in ${((Date.now() - t0) / 1000).toFixed(1)}s | video ${S.live ? 'LIVE chain' : 'mock'}`);
+  log(`[gen] intro ready in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   runFight();
 }
 
@@ -238,10 +221,10 @@ async function runFight() {
   const id = runId, alive = () => id === runId && S.phase === 'fight';
   const A = S.teams.A.char, B = S.teams.B.char;
   setPhase('fight'); S.beat = 0; S.last = null; S.winner = null;
-  let useVideo = !!S.intro, len = useVideo ? INTRO_MS : T.mockBeat, P = Date.now(); // P = start of the clip now on screen
+  let useVideo = !!S.intro, len = useVideo ? INTRO_MS : CLIP_MS, P = Date.now(); // P = start of the clip now on screen
   playClip(S.intro);
   const classes = () => (L.economy ? ['A', 'B'] : ['A', 'B', 'tie']);
-  let branches = useVideo ? (S.replay ? replayBranches(0) : media.branchClips(S.intro, classes(), A, B, false, 0)) : null;
+  let branches = useVideo ? media.branchClips(S.intro, classes(), A, B, false, 0) : null;
   // the host introduces the fighters, then each says their catchphrase
   [[800, () => { sayAt = Date.now(); speak('host', 'host', announce('A', A)); }], [4200, () => { sayAt = Date.now(); speak('host', 'host', announce('B', B)); }],
     [7600, () => charSay('A', 'entrance')], [10600, () => charSay('B', 'entrance')]].forEach(([ms, fn]) => setTimeout(() => alive() && S.beat === 1 && fn(), ms));
@@ -255,8 +238,7 @@ async function runFight() {
     S.beatPhase = 'lock'; push();
     const g = gatherVotes();
     let r = computeBeat(k, g), clip = null;
-    if (S.replay && REPLAY.clips[k]) { r = computeBeat(k, g, REPLAY.clips[k].cls); r.cls = REPLAY.clips[k].cls; } // the outcome follows the recorded clip
-    else if (S.forceWin) { r = computeBeat(k, g, S.forceWin); log(`[control] outcome of round ${k} forced to ${S.forceWin}`); S.forceWin = null; }
+    if (S.forceWin) { r = computeBeat(k, g, S.forceWin); log(`[control] outcome of round ${k} forced to ${S.forceWin}`); S.forceWin = null; }
     if (r.cls === 'tie' && branches && !branches.tie) r = computeBeat(k, g, g.ca >= g.cb ? 'A' : 'B'); // economy mode: no tie branch
     if (branches) {
       const want = branches[r.cls], deadline = P + len + HOLD_MAX_MS;
@@ -274,12 +256,12 @@ async function runFight() {
       media.cancelBranches(branches, r.cls); // unchosen branches: cancel if still queued (refunded)
     }
     // chain on immediately: next branches start from this clip's last frame, while it is still waiting to play
-    branches = clip && k < BEATS ? (S.replay ? replayBranches(k) : media.branchClips(clip, k + 1 === BEATS ? ['A', 'B'] : classes(), A, B, k + 1 === BEATS, k)) : null;
+    branches = clip && k < BEATS ? media.branchClips(clip, k + 1 === BEATS ? ['A', 'B'] : classes(), A, B, k + 1 === BEATS, k) : null;
     // live commentary: compose the line now and start voicing it, so the audio is ready when the clip starts
-    const plan = S.replay ? planReplayReaction(r) : planReaction(r), prep = L.voice && media.live() && !audio.cachedUrl('host', plan) ? audio.ensure('host', plan) : null;
+    const plan = planReaction(r), prep = L.voice && !audio.cachedUrl('host', plan) ? audio.ensure('host', plan) : null;
     await sleepUntil(P + len); if (!alive()) return;
-    applyBeat(r); if (k === BEATS) { S.winner = r.cls; if (S.replay) S.teams[r.cls === 'A' ? 'B' : 'A'].hp = 0; }
-    P = Date.now(); len = clip ? CLIP_MS : (S.live ? CLIP_MS : T.mockBeat);
+    applyBeat(r); if (k === BEATS) S.winner = r.cls;
+    P = Date.now(); len = CLIP_MS;
     playClip(clip);
     sayAt = Date.now(); speak('host', 'host', plan, prep);
     if (k === BEATS) setTimeout(() => alive() && charSay(S.winner, 'win'), 5500);
@@ -336,7 +318,6 @@ function forceMatch(aId, bId) { // skip casting: these two fight
   const A = byId(aId), B = byId(bId); if (!A || !B || A === B || S.phase !== 'lobby') return false;
   S.teams.A = newSide(); S.teams.B = newSide();
   [[S.teams.A, A], [S.teams.B, B]].forEach(([x, c]) => { x.char = c; x.hp = x.maxhp = c.stats.hp; x.stats = { atk: c.stats.atk, spec: c.stats.spec }; });
-  if (replayOn()) applyReplayFighters();
   for (const p of players.values()) p.team = p.kbd ? p.id.slice(-1) : null;
   for (const p of players.values()) if (!p.team) p.team = smallerSide();
   log(`[control] forced matchup ${A.name} vs ${B.name}`); startGenerating(); return true;
@@ -366,7 +347,7 @@ setInterval(() => {
     const p = players.get(c.id); if (!p) continue;
     if (S.phase === 'casting') {
       if (c.epoch !== crowdEpoch) { c.epoch = crowdEpoch; c.voteAt = now + frand(800, 9000) * c.slow; c.voted = false; }
-      if (!c.voted && now >= c.voteAt) { c.voted = true; const sorted = [...rv].sort((a, b) => b.votes - a.votes); castVote(p, replayOn() && Math.random() < .85 ? rnd([REPLAY.fighters.A, REPLAY.fighters.B]) : (sorted[0].votes && Math.random() < .45 ? rnd(sorted.slice(0, 2)).id : ROSTER[c.favIdx].id)); }
+      if (!c.voted && now >= c.voteAt) { c.voted = true; const sorted = [...rv].sort((a, b) => b.votes - a.votes); castVote(p, sorted[0].votes && Math.random() < .45 ? rnd(sorted.slice(0, 2)).id : ROSTER[c.favIdx].id); }
     }
     if (S.phase === 'fight' && S.beatPhase === 'vote' && p.team) {
       if (c.beat !== S.beat) { c.beat = S.beat; c.moveAt = now + frand(600, 5500) * c.slow; }
@@ -382,11 +363,11 @@ setInterval(() => {
   if (changed) push();
 }, 300);
 // One click: clean slate, spawn the crowd, start the vote once they have joined, and let the whole match play out.
-function runDemo(n, mock, fast) {
+function runDemo(n, fast) {
   clearTimeout(timer); fresh(); setPhase('lobby');
-  L.mock = !!mock; T.cast = fast ? 12e3 : 25e3; T.mockBeat = fast ? 8e3 : 15e3;
+  T.cast = fast ? 12e3 : 25e3;
   crowdStop(); crowdSpawn(Math.max(2, Math.min(200, n || 40)));
-  log(`[demo] simulated run: ${crowd.size} virtual phones, ${mock ? 'MOCK' : 'LIVE'}${fast ? ', fast' : ''}`);
+  log(`[demo] simulated run: ${crowd.size} virtual phones, LIVE${fast ? ', fast casting' : ''}`);
   setTimeout(() => { if (S.phase === 'lobby' && !L.halted) startCasting(); }, 9500);
 }
 // ---------- bots (solo testing, server side) ----------
@@ -477,8 +458,8 @@ server = http.createServer(async (req, res) => {
     else if (cmd === 'warm') audio.warm();
     else if (cmd === 'crowd') crowdSpawn(Math.max(1, Math.min(200, Number(q.get('n')) || 40)));
     else if (cmd === 'crowdstop') crowdStop();
-    else if (cmd === 'rundemo') { if (L.halted) json_ok = 0; else runDemo(Number(q.get('n')) || 40, q.get('mode') === 'replay', q.get('fast') === '1'); }
-    else if (cmd === 'fast') { T.cast = q.get('on') === '1' ? 12e3 : 25e3; T.mockBeat = q.get('on') === '1' ? 8e3 : 15e3; }
+    else if (cmd === 'rundemo') { if (L.halted) json_ok = 0; else runDemo(Number(q.get('n')) || 40, q.get('fast') === '1'); }
+    else if (cmd === 'fast') { T.cast = q.get('on') === '1' ? 12e3 : 25e3; }
     else if (cmd === 'match') json_ok = forceMatch(q.get('a'), q.get('b'));
     else if (cmd === 'force') S.forceWin = ['A', 'B', 'tie'].includes(q.get('win')) ? q.get('win') : null;
     else if (cmd === 'call') { const t = q.get('type'), tm = q.get('team') || 'both'; say(t === 'taunt' ? 'call_taunt' : tm === 'A' ? 'call_A' : tm === 'B' ? 'call_B' : 'call_tap', true); }
@@ -489,7 +470,6 @@ server = http.createServer(async (req, res) => {
     else if (cmd === 'move') { const k = kbd(q.get('team')); if (k) { setMove(k, q.get('m')); push(); } }
     else if (cmd === 'taunt') { const k = kbd(q.get('team')); if (k) doTaunt(k, q.get('id') || TAUNTS[0].id); }
     else if (cmd === 'botsclear') { for (const [id, pl] of players) if (pl.bot) players.delete(id); push(); }
-    else if (cmd === 'mock') { L.mock = q.get('on') === '1'; log(`[control] mode: ${L.mock ? 'MOCK' : 'LIVE'}`); }
     else if (cmd === 'cast') T.cast = Math.max(5, Math.min(120, Number(q.get('secs')) || 25)) * 1000;
     else if (cmd === 'roster') media.generateRoster(styleId(), q.get('id') || undefined).then(() => push());
     else if (cmd === 'style' && S.phase === 'lobby') { setStyle(q.get('name')); log(`[style] ${STYLES[styleId()].name}`); push(); }
@@ -522,8 +502,7 @@ function listen(port, tries = 0) { // if the port is taken by another app, use t
     console.log(`  screen  : http://localhost:${PORT}/screen    (projector, with the debug dock)`);
     console.log(`  demo    : http://localhost:${PORT}/demo?n=40&auto=1`);
     console.log(`  phones  : ${publicUrl()}/`);
-    if (!media.live()) console.log('  !!! NOT LIVE: ' + (process.env.MACHGEN_API_KEY ? 'mock flag set' : 'no MACHGEN_API_KEY found in .env next to server.js') + ' -> no video will be generated !!!');
-    console.log(`  MachGen: ${media.live() ? 'LIVE' : 'NOT LIVE'} | voices: ${audio.provider()} | budget cap $${L.cap} ${FAST ? '[FAST]' : ''}\n`);
+    console.log(`  LIVE | voices: ${audio.provider()} | budget cap $${L.cap} ${FAST ? '[FAST]' : ''}\n`);
     if (process.argv.includes('--open') && process.platform === 'darwin') exec(`open http://localhost:${PORT}/control`);
   };
   server.once('error', onError); server.once('listening', onListening); server.listen(port);

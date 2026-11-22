@@ -130,7 +130,7 @@ body:not(.fx) #unlock{top:auto;bottom:1vh;left:50%;right:auto;transform:translat
 <script>
 const COL={A:'#ff3fa4',B:'#00f0ff'},$=id=>document.getElementById(id);
 let S=null,mode='',fx={},ovT=null,act=0,curSeq=0,preSeq=0,audioOK=false,sayT=null,voice=null;
-fetch('/info').then(r=>r.json()).then(j=>{$('tag').textContent=(j.live?'MachGen LIVE':'MOCK')+' · '+j.url});
+fetch('/info').then(r=>r.json()).then(j=>{$('tag').textContent='LIVE'+' · '+j.url});
 const es=new EventSource('/events');es.onmessage=e=>{S=JSON.parse(e.data);render()};
 const sec=ms=>Math.ceil(ms/1000);
 const adm=c=>fetch('/admin/'+c).catch(()=>{});
@@ -147,7 +147,8 @@ function kbKey(e){ // keyboard players (weight x10): pink A/Q/W/E/Z, cyan L/I/O/
   return true;
 }
 if(QS.has('fx'))document.body.classList.add('fx');
-addEventListener('keydown',e=>{unlock();if(e.key==='k'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName))document.body.classList.toggle('legend');if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(kbKey(e))return;if(e.key===' '){e.preventDefault();adm(S.phase==='lobby'?'start':'skip')}if(e.key==='r')adm('reset');if(e.key==='b')adm('bots?n=20');if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x')adm('halt')});
+addEventListener('keydown',e=>{unlock();if(e.key==='k'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName))document.body.classList.toggle('legend');if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;if(kbKey(e))return;if(e.key===' '){e.preventDefault();if(S.phase==='lobby')adm('start')} /* space only STARTS from the lobby: it can never interrupt a match */if(e.key==='f')document.documentElement.requestFullscreen?.();if(e.key==='x'){if(Date.now()-xAt<2000)adm('halt');else{xAt=Date.now();ov('<div class="banner">Press X again to STOP ALL</div>',1600)}}});
+let xAt=0;
 function ov(html,ms){clearTimeout(ovT);$('ov').innerHTML=html;if(ms)ovT=setTimeout(()=>{$('ov').innerHTML=''},ms)}
 // character picture: duotone slice-shift image, or the emoji icon if no portrait exists. cls = dA/dB/dG/dY
 const pic=(c,cls)=>c.img?`<div class="gs ${cls}" style="--img:url(${c.img})"></div>`:`<div class="ic">${c.icon}</div>`;
@@ -164,7 +165,7 @@ function render(){
 function staticView(){
   const A=BR.ART;
   if(S.phase==='lobby')return `<div class="lobby"><div class="sky" style="top:4%">${A.saucer(8)}</div><div class="sky" style="top:70%;animation-duration:20s;animation-delay:-9s">${A.alien(6)}</div><div class="qr"><img src="/qr.svg"></div><div><div class="big">${BR.gl('Scan.')}<br>Pick your fighter.</div><div class="sub">Six weirdos. The crowd picks two. Then YOU decide who wins.</div>
-    <div class="cnt">${S.players}<small>people in</small></div><div class="keys">[space] start · [b] +20 bots · [r] reset · [x] STOP ALL · [d] debug · [f] fullscreen</div></div></div>`;
+    <div class="cnt">${S.players}<small>people in</small></div><div class="keys">[space] start · [x][x] STOP ALL · [d] debug · [f] fullscreen · everything else: /control</div></div></div>`;
   if(S.phase==='casting'){const mx=Math.max(1,...S.roster.map(c=>c.votes)),rank=[...S.roster].sort((a,b)=>b.votes-a.votes).map(c=>c.id);
     return `<div class="cast">${S.roster.map((c,i)=>{const r=rank.indexOf(c.id),top=r<2&&c.votes>0,d=BR.duo(c.id),cc={dA:'var(--A)',dB:'var(--B)',dG:'var(--ph)',dY:'var(--y)'}[d];return `<div class="cc ${top?'top':''}" style="--cc:${cc}"><div class="im">${pic(c,d)}<span class="id">DEF-0${i+1}</span></div><div class="cp"><b>${c.name}</b><small>${c.tagline}</small></div><div class="vb"><i style="width:${100*c.votes/mx}%"></i></div><span class="vn">${c.votes}</span>${top?`<span class="rk">#${r+1}</span>`:''}</div>`}).join('')}</div>`}
   if(S.phase==='generating'){const f=(k)=>{const x=S[k];return `<div class="fc" style="--c:${COL[k]}"><div class="im">${x.char?pic(x.char,BR.corner(k)):''}</div><div class="cp"><b>${x.name}</b><small>${x.n} fans · ${x.char?x.char.tagline:''}</small></div></div>`};
@@ -173,7 +174,7 @@ function staticView(){
 }
 function buildArena(){
   $('body').innerHTML=`<div class="hud">${['A','B'].map(k=>`<div class="hs ${k==='B'?'r':''}" style="--c:${COL[k]}"><div class="tname" id="tn${k}"></div><div class="hp"><i id="hpi${k}"></i><b id="hpb${k}"></b></div><div class="charge"><i id="ch${k}"></i></div><div class="tilt"><i id="tl${k}"></i></div></div>`).join('')}</div>
-  <div class="stage" id="stage"><video id="v0" playsinline></video><video id="v1" playsinline></video><div id="mock"></div><div class="trk"></div>
+  <div class="stage" id="stage"><video id="v0" playsinline></video><video id="v1" playsinline></video><div class="trk"></div>
     <div class="nameplate" id="npA" style="left:2vw;color:${COL.A}"></div><div class="nameplate" id="npB" style="right:2vw;color:${COL.B}"></div><div id="status"></div><div id="call"></div>
     <div id="pop"><div class="gs dY" style="--img:url(/assets/host.jpg)"></div><span class="live">● LIVE</span><div class="eq"><i></i><i></i><i></i><i></i></div></div></div>
   <div class="moves">${['A','B'].map(k=>`<div class="mrow" id="mv${k}" style="--c:${COL[k]}">${['attacco','guardia','speciale'].map(m=>`<div class="mv" data-m="${m}"><span></span><i></i></div>`).join('')}</div>`).join('')}</div>`;
@@ -189,12 +190,8 @@ function syncVideo(){
     curSeq=v.seq;if(!v.url)return;
     const el=vid(1-act);if(el.dataset.seq!=v.seq){el.dataset.seq=v.seq;el.src=v.url}
     el.muted=!audioOK;el.volume=speaking?0.12:0.55;el.currentTime=0;el.play().catch(()=>{});el.style.opacity=1;const old=vid(act);old.style.opacity=0;setTimeout(()=>old.pause(),250);act=1-act;
-    $('mock').style.display='none';
+    
   }
-}
-function setMock(){ // no generated video: show the two portraits
-  const k=S.A.char&&S.B.char?S.A.char.id+S.B.char.id:'';if(fx.mockKey===k)return;fx.mockKey=k;if(!k)return;
-  $('mock').innerHTML=['A','B'].map(c=>`<div class="mk" id="mk${c}">${pic(S[c].char,BR.corner(c))}</div>`).join('');
 }
 function updateArena(){
   for(const k of ['A','B']){const x=S[k];
@@ -204,7 +201,6 @@ function updateArena(){
     $('mv'+k).style.visibility=S.phase==='fight'&&S.beatPhase==='vote'?'visible':'hidden';
     const tot=Math.max(1,x.n);$('mv'+k).querySelectorAll('.mv').forEach(d=>{const m=d.dataset.m;d.firstChild.textContent=`${MVL(k,m)} ${x.moveVotes[m]}`;d.lastChild.style.width=100*x.moveVotes[m]/tot+'%'});
   }
-  if(!S.live)setMock();
   syncVideo();
   if(S.phase==='fight'&&S.beat===1&&!S.last&&fx.ov!=='vs'){fx.ov='vs';ov(`<div class="banner pop">${S.A.name} <small>VS</small> ${S.B.name}</div>`,3000)}
   if(S.phase==='result'&&fx.ov!=='result'){fx.ov='result';ov(`<div class="win" style="color:${COL[S.winner]}">★ ${S[S.winner].name} wins! ★</div><div class="sub" style="color:#fff">${S.mvp?`Top tapper: ${S[S.mvp.team].name}'s fan with ${S.mvp.taps} taps`:''}</div>`,0)}
@@ -217,7 +213,6 @@ function playFx(){
   if(S.phase!=='fight'||!S.last||S.last.beat===fx.beat)return;fx.beat=S.last.beat;const l=S.last;
   const pop=(side,txt,c)=>{const d=document.createElement('div');d.className='dmg';d.style.cssText=`--c:${c};${side==='A'?'left':'right'}:14%`;d.textContent=txt;$('stage').appendChild(d);setTimeout(()=>d.remove(),1900)};
   if(l.dA>=l.dB){if(l.dA)pop('B','-'+l.dA,COL.A)}else pop('A','-'+l.dB,COL.B);
-  if(!S.live){const s=c=>{const e=$('mk'+c)&&$('mk'+c).firstElementChild;if(e){e.classList.remove('hit');void e.offsetWidth;e.classList.add('hit')}};if(l.dA)s('B');if(l.dB)s('A')}
   ov(`<div class="banner pop">${MVL('A',l.ma)} <small>vs</small> ${MVL('B',l.mb)}</div>`,2500);
 }
 // ---- speech: AUDIO ONLY. The host is the loudest voice; while anyone speaks the video sound is ducked. ----

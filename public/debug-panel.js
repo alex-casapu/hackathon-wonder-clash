@@ -51,7 +51,7 @@
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   const banner = document.createElement('div'); banner.id = 'dbg-banner'; document.body.append(banner, root);
   const mini = document.createElement('div'); mini.id = 'dbg-mini'; mini.innerHTML = '<span id="m-mode"></span><span id="m-sp">$0.00</span><button id="m-stop" title="STOP ALL (cancels everything, blocks paid calls)">STOP</button>'; document.body.appendChild(mini);
-  mini.querySelector('#m-stop').onclick = () => adm('halt');
+  mini.querySelector('#m-stop').onclick = () => { if (confirm('STOP ALL? This cancels the match and blocks paid calls.')) adm('halt'); };
   const $ = (id) => document.getElementById(id), adm = (c) => fetch('/admin/' + c).catch(() => {});
   let D = null;
   const toggle = () => { root.classList.toggle('open'); $('d-toggle').textContent = root.classList.contains('open') ? '▼ Debug' : '▲ Debug'; };
@@ -74,8 +74,8 @@
     $('d-cap2').textContent = `of $${D.cap} · ${D.inflight} in flight`; $('d-capl').textContent = `cap $${D.cap}, $${left} left`;
     $('d-bar').style.width = pct + '%'; $('d-bar').style.background = pct > 80 ? '#ff4d4d' : pct > 50 ? '#ffb020' : '#3ddc84';
     $('d-state').textContent = `${D.phase}${D.phase === 'fight' ? ' r' + D.beat : ''} · ${D.players} players`;
-    $('m-sp').textContent = '$' + D.spent.toFixed(2); $('m-mode').textContent = D.halted ? 'STOPPED' : (D.live ? 'LIVE' : 'NOT LIVE'); $('m-mode').style.color = D.live ? '' : '#ff9a3c'; $('m-stop').textContent = D.halted ? 'STOPPED' : 'STOP';
-    $('d-mode').innerHTML = D.live ? '<span class="ok">LIVE</span>' : (D.replay ? '<span class="warn">REPLAY</span>' : '<span class="warn">MOCK</span>');
+    $('m-sp').textContent = '$' + D.spent.toFixed(2); $('m-mode').textContent = D.halted ? 'STOPPED' : 'LIVE'; $('m-mode').style.color = D.live ? '' : '#ff9a3c'; $('m-stop').textContent = D.halted ? 'STOPPED' : 'STOP';
+    $('d-mode').innerHTML = '<span class="ok">LIVE</span>';
     $('d-stop').className = D.halted ? 'halted' : ''; $('d-stop').textContent = D.halted ? '⛔ STOPPED' : '⛔ STOP ALL';
     banner.style.display = D.halted ? 'block' : 'none'; banner.textContent = 'HALTED: match stopped, queued tasks cancelled, no paid call can start until you press "Resume paid calls" (debug drawer).';
     if (document.activeElement !== $('d-cap')) $('d-cap').value = D.cap;
